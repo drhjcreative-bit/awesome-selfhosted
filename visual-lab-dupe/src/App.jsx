@@ -6,7 +6,10 @@ export default function App() {
   const canvasRef = useRef(null);
   const audioCtxRef = useRef(null);
   const analyserRef = useRef(null);
-  const sourceRef = useRef(null);
+  const sourceRef = useRef(null); // current input node feeding the analyser
+  const micStreamRef = useRef(null);
+  const audioElRef = useRef(null);
+  const mediaElSrcRef = useRef(null); // MediaElementSource can be created only once per element
   const animRef = useRef(null);
 
   const [mode, setMode] = useState("SCOPE");
@@ -15,19 +18,124 @@ export default function App() {
   const [showText, setShowText] = useState(true);
   const [lyrics, setLyrics] = useState("Night lights flicker in slow motion");
   const [status, setStatus] = useState("Allow mic access to see audio-reactive visuals.");
+  const [sourceType, setSourceType] = useState("mic"); // "mic" | "file"
+  const [fileName, setFileName] = useState("");
+  const [isPlaying, setIsPlaying] = useState(false);
 
   // Live snapshot of the controls so the animation loop can read current values
   // without tearing down and rebuilding the AudioContext on every keystroke.
   const controlsRef = useRef({ mode, color, intensity, showText, lyrics });
   controlsRef.current = { mode, color, intensity, showText, lyrics };
 
-  // Resume a suspended AudioContext (browsers start it suspended until a gesture).
   const resumeAudio = () => {
     const ctx = audioCtxRef.current;
     if (ctx && ctx.state === "suspended") ctx.resume();
   };
 
-  // Audio + rendering are set up exactly once. Controls are read live via refs.
+  // Tear down whatever is currently feeding the analyser, so we can switch inputs
+  // (mic <-> file) without stacking connections or leaking a live mic stream.
+  const disconnectCurrentSource = () => {
+    if (sourceRef.current) {
+      try {
+        sourceRef.current.disconnect();
+      } catch {
+        /* already disconnected */
+      }
+      sourceRef.current = null;
+    }
+    if (micStreamRef.current) {
+      micStreamRef.current.getTracks().forEach((t) => t.stop());
+      micStreamRef.current = null;
+    }
+    if (audioElRef.current) audioElRef.current.pause();
+    // The file path routes analyser -> destination so it's audible; drop that
+    // edge when leaving file mode so mic input can't feed back to the speakers.
+    if (analyserRef.current && audioCtxRef.current) {
+      try {
+        analyserRef.current.disconnect(audioCtxRef.current.destination);
+      } catch {
+        /* not connected */
+      }
+    }
+  };
+
+  const connectMic = async () => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+    disconnectCurrentSource();
+    setSourceType("mic");
+    setIsPlaying(false);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      micStreamRef.current = stream;
+      const src = ctx.createMediaStreamSource(stream);
+      src.connect(analyserRef.current);
+      sourceRef.current = src;
+      await ctx.resume();
+      setStatus("Mic connected.");
+    } catch (err) {
+      setStatus(`Mic unavailable (${err.name}). Visuals will stay idle.`);
+    }
+  };
+
+  const connectFile = async (file) => {
+    const ctx = audioCtxRef.current;
+    const el = audioElRef.current;
+    if (!ctx || !el || !file) return;
+    disconnectCurrentSource();
+
+    if (el.src) URL.revokeObjectURL(el.src);
+    el.src = URL.createObjectURL(file);
+    el.loop = true;
+
+    try {
+      // Reuse the element's source across file swaps — the API allows exactly one.
+      if (!mediaElSrcRef.current) {
+        mediaElSrcRef.current = ctx.createMediaElementSource(el);
+      }
+      const src = mediaElSrcRef.current;
+      src.connect(analyserRef.current);
+      analyserRef.current.connect(ctx.destination); // route audio so it's audible
+      sourceRef.current = src;
+    } catch (err) {
+      setStatus(`Could not route audio file (${err.name}).`);
+      return;
+    }
+
+    setSourceType("file");
+    setFileName(file.name);
+    await ctx.resume();
+    try {
+      await el.play();
+      setIsPlaying(true);
+      setStatus(`Playing: ${file.name}`);
+    } catch {
+      setIsPlaying(false);
+      setStatus(`Loaded: ${file.name} — press Play.`);
+    }
+  };
+
+  const togglePlay = async () => {
+    const el = audioElRef.current;
+    const ctx = audioCtxRef.current;
+    if (!el || !el.src) return;
+    await ctx?.resume();
+    if (el.paused) {
+      await el.play();
+      setIsPlaying(true);
+    } else {
+      el.pause();
+      setIsPlaying(false);
+    }
+  };
+
+  const onPickFile = (e) => {
+    const file = e.target.files?.[0];
+    if (file) connectFile(file);
+  };
+
+  // Audio context + render loop are set up exactly once. Controls are read live
+  // via refs; the input source can be swapped at runtime via the helpers above.
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
@@ -36,24 +144,14 @@ export default function App() {
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     audioCtxRef.current = audioCtx;
+    const audioEl = audioElRef.current; // captured for the cleanup closure
 
     const analyser = audioCtx.createAnalyser();
     analyser.fftSize = 2048;
     analyserRef.current = analyser;
 
-    // For demo: use mic; later replace with file/DAW feed
-    navigator.mediaDevices
-      .getUserMedia({ audio: true })
-      .then((stream) => {
-        const src = audioCtx.createMediaStreamSource(stream);
-        src.connect(analyser);
-        sourceRef.current = src;
-        resumeAudio();
-        setStatus("Mic connected. Later we'll wire this to your DAW.");
-      })
-      .catch((err) => {
-        setStatus(`Mic unavailable (${err.name}). Visuals will stay idle.`);
-      });
+    // Default to the mic, preserving the original prototype's behavior.
+    connectMic();
 
     const bufferLength = analyser.frequencyBinCount;
     const timeData = new Uint8Array(bufferLength);
@@ -218,9 +316,12 @@ export default function App() {
     return () => {
       cancelAnimationFrame(animRef.current);
       window.removeEventListener("resize", handleResize);
-      if (sourceRef.current) sourceRef.current.disconnect();
+      disconnectCurrentSource();
+      if (audioEl?.src) URL.revokeObjectURL(audioEl.src);
+      mediaElSrcRef.current = null;
       audioCtx.close();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -234,6 +335,7 @@ export default function App() {
       onClick={resumeAudio}
     >
       <canvas ref={canvasRef} style={{ display: "block" }} />
+      <audio ref={audioElRef} style={{ display: "none" }} />
       <div
         style={{
           position: "absolute",
@@ -306,6 +408,70 @@ export default function App() {
             style={{ padding: 6, minWidth: 220 }}
           />
         </div>
+
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            flexWrap: "wrap",
+            alignItems: "center",
+            marginTop: 8,
+          }}
+        >
+          <span style={{ fontSize: 13, opacity: 0.8 }}>Source:</span>
+          <button
+            type="button"
+            onClick={connectMic}
+            style={{
+              padding: "4px 10px",
+              cursor: "pointer",
+              fontWeight: sourceType === "mic" ? 700 : 400,
+            }}
+          >
+            🎤 Mic
+          </button>
+          <label
+            style={{
+              padding: "4px 10px",
+              cursor: "pointer",
+              border: "1px solid rgba(255,255,255,0.4)",
+              borderRadius: 4,
+              fontWeight: sourceType === "file" ? 700 : 400,
+            }}
+          >
+            🎵 Audio file
+            <input
+              type="file"
+              accept="audio/*"
+              onChange={onPickFile}
+              style={{ display: "none" }}
+            />
+          </label>
+          {sourceType === "file" && fileName && (
+            <>
+              <button
+                type="button"
+                onClick={togglePlay}
+                style={{ padding: "4px 10px", cursor: "pointer" }}
+              >
+                {isPlaying ? "⏸ Pause" : "▶ Play"}
+              </button>
+              <span
+                style={{
+                  fontSize: 12,
+                  opacity: 0.8,
+                  maxWidth: 220,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {fileName}
+              </span>
+            </>
+          )}
+        </div>
+
         <p style={{ fontSize: 12, opacity: 0.8, margin: "6px 0 0" }}>{status}</p>
       </div>
     </div>
