@@ -1,7 +1,7 @@
 # Visual Lab Dupe
 
 An audio-reactive visual playground built with React + Vite and the Web Audio
-API. It captures live audio (currently the microphone) through an
+API. It analyzes microphone input or a selected local audio file through an
 `AnalyserNode` and renders it to a full-screen `<canvas>` in one of several
 visual modes, with a small on-screen control panel.
 

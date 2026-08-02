@@ -23,3 +23,9 @@ body {
   background: #05050a;
   overflow: hidden;
 }
+
+/* Make keyboard focus on the visually-hidden file input visible on its label. */
+.file-label:focus-within {
+  outline: 2px solid #00f0ff;
+  outline-offset: 2px;
+}

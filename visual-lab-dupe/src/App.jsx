@@ -14,6 +14,8 @@ export default function App() {
   const streamDestRef = useRef(null); // taps the audio graph for recording
   const recorderRef = useRef(null);
   const chunksRef = useRef([]);
+  const sourceReqRef = useRef(0); // invalidates in-flight async source setup
+  const downloadUrlRef = useRef(""); // mirror of downloadUrl for unmount cleanup
 
   const [mode, setMode] = useState("SCOPE");
   const [color, setColor] = useState("#00f0ff");
@@ -31,7 +33,9 @@ export default function App() {
   // Live snapshot of the controls so the animation loop can read current values
   // without tearing down and rebuilding the AudioContext on every keystroke.
   const controlsRef = useRef({ mode, color, intensity, showText, lyrics, beat });
-  controlsRef.current = { mode, color, intensity, showText, lyrics, beat };
+  useEffect(() => {
+    controlsRef.current = { mode, color, intensity, showText, lyrics, beat };
+  });
 
   const resumeAudio = () => {
     const ctx = audioCtxRef.current;
@@ -69,10 +73,16 @@ export default function App() {
     const ctx = audioCtxRef.current;
     if (!ctx) return;
     disconnectCurrentSource();
+    const reqId = ++sourceReqRef.current;
     setSourceType("mic");
-    setIsPlaying(false);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // A newer source request (or unmount) superseded this one while the
+      // permission prompt was open — drop the stream instead of wiring it up.
+      if (reqId !== sourceReqRef.current || ctx.state === "closed") {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
       micStreamRef.current = stream;
       const src = ctx.createMediaStreamSource(stream);
       src.connect(analyserRef.current);
@@ -89,6 +99,7 @@ export default function App() {
     const el = audioElRef.current;
     if (!ctx || !el || !file) return;
     disconnectCurrentSource();
+    ++sourceReqRef.current; // invalidate any in-flight mic request
 
     if (el.src) URL.revokeObjectURL(el.src);
     el.src = URL.createObjectURL(file);
@@ -111,12 +122,11 @@ export default function App() {
     setSourceType("file");
     setFileName(file.name);
     await ctx.resume();
+    // isPlaying is kept in sync by the element's play/pause events (see JSX).
     try {
       await el.play();
-      setIsPlaying(true);
       setStatus(`Playing: ${file.name}`);
     } catch {
-      setIsPlaying(false);
       setStatus(`Loaded: ${file.name} — press Play.`);
     }
   };
@@ -125,19 +135,22 @@ export default function App() {
     const el = audioElRef.current;
     const ctx = audioCtxRef.current;
     if (!el || !el.src) return;
-    await ctx?.resume();
-    if (el.paused) {
-      await el.play();
-      setIsPlaying(true);
-    } else {
-      el.pause();
-      setIsPlaying(false);
+    try {
+      await ctx?.resume();
+      if (el.paused) await el.play();
+      else el.pause();
+    } catch (err) {
+      setStatus(`Playback blocked (${err.name}).`);
     }
   };
 
   const onPickFile = (e) => {
     const file = e.target.files?.[0];
-    if (file) connectFile(file);
+    if (file) {
+      connectFile(file).catch((err) =>
+        setStatus(`Could not load audio file (${err.name}).`),
+      );
+    }
   };
 
   const pickRecordingMime = () => {
@@ -185,17 +198,32 @@ export default function App() {
     recorderRef.current = recorder;
     chunksRef.current = [];
 
+    // Stop only the canvas video track; the audio tracks belong to the shared
+    // streamDest and are reused by later recordings.
+    const stopCapture = () => {
+      stream.getVideoTracks().forEach((track) => track.stop());
+      recorderRef.current = null;
+    };
+
     recorder.ondataavailable = (e) => {
       if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
     };
     recorder.onstop = () => {
+      stopCapture();
       const blob = new Blob(chunksRef.current, { type: mimeType });
       setDownloadUrl((prev) => {
         if (prev) URL.revokeObjectURL(prev);
-        return URL.createObjectURL(blob);
+        const url = URL.createObjectURL(blob);
+        downloadUrlRef.current = url;
+        return url;
       });
       setIsRecording(false);
       setStatus(`Recording ready (${(blob.size / 1e6).toFixed(1)} MB).`);
+    };
+    recorder.onerror = (e) => {
+      stopCapture();
+      setIsRecording(false);
+      setStatus(`Recording failed (${e.error?.name ?? "unknown error"}).`);
     };
 
     recorder.start();
@@ -252,6 +280,35 @@ export default function App() {
       noiseImage.data[i] = 255; // opaque; blend strength comes from globalAlpha
     }
 
+    // PLASMA is a low-frequency field, so it's computed once into a small
+    // ImageData buffer (no hsla strings / per-block fillRect) and upscaled with
+    // drawImage, which is far cheaper than tens of thousands of fills per frame.
+    const PLASMA_W = 160;
+    const PLASMA_H = 90;
+    const plasmaCanvas = document.createElement("canvas");
+    plasmaCanvas.width = PLASMA_W;
+    plasmaCanvas.height = PLASMA_H;
+    const plasmaCtx = plasmaCanvas.getContext("2d");
+    const plasmaImage = plasmaCtx.createImageData(PLASMA_W, PLASMA_H);
+
+    // Minimal HSL->RGB (h in [0,360), s/l in [0,1]) for the plasma buffer.
+    const hslToRgb = (h, s, l) => {
+      const c = (1 - Math.abs(2 * l - 1)) * s;
+      const hp = (((h % 360) + 360) % 360) / 60;
+      const x = c * (1 - Math.abs((hp % 2) - 1));
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      if (hp < 1) [r, g] = [c, x];
+      else if (hp < 2) [r, g] = [x, c];
+      else if (hp < 3) [g, b] = [c, x];
+      else if (hp < 4) [g, b] = [x, c];
+      else if (hp < 5) [r, b] = [x, c];
+      else [r, b] = [c, x];
+      const m = l - c / 2;
+      return [(r + m) * 255, (g + m) * 255, (b + m) * 255];
+    };
+
     const hexToRgb = (hex) => {
       const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
       return m
@@ -272,16 +329,18 @@ export default function App() {
       const [r, g, b] = hexToRgb(color);
       const baseColor = `rgb(${r}, ${g}, ${b})`;
 
-      // Audio features
+      // Audio features (single pass over the bins)
       let sum = 0;
       let bassSum = 0;
+      let weighted = 0;
       for (let i = 0; i < bufferLength; i++) {
-        sum += freqData[i];
-        if (i < bassBins) bassSum += freqData[i];
+        const v = freqData[i];
+        sum += v;
+        weighted += v * i;
+        if (i < bassBins) bassSum += v;
       }
-      const rms = sum / bufferLength / 255;
-      const centroid =
-        freqData.reduce((acc, v, i) => acc + v * i, 0) / (sum || 1);
+      const level = sum / bufferLength / 255; // mean magnitude, 0..1
+      const centroid = weighted / (sum || 1);
 
       // Beat detection on bass energy, feeding a decaying pulse.
       const bass = bassSum / bassBins / 255;
@@ -344,28 +403,35 @@ export default function App() {
         }
       } else if (mode === "PLASMA") {
         const time = audioCtx.currentTime * 0.5;
-        for (let y = 0; y < height; y += 6) {
-          for (let x = 0; x < width; x += 6) {
-            const nx = x / width;
-            const ny = y / height;
+        const pd = plasmaImage.data;
+        let p = 0;
+        for (let y = 0; y < PLASMA_H; y++) {
+          const ny = y / PLASMA_H;
+          for (let x = 0; x < PLASMA_W; x++) {
+            const nx = x / PLASMA_W;
             const v =
               Math.sin(nx * 6 + time) +
               Math.sin(ny * 4 - time) +
               Math.sin((nx + ny) * 5 + time) +
-              (rms * 2 - 1) * intensityFactor;
+              (level * 2 - 1) * intensityFactor;
             const val = (v + 3) / 6;
             const hue = (centroid / bufferLength) * 360 + val * 360;
-            ctx.fillStyle = `hsla(${hue}, 80%, ${40 + val * 40}%, ${
-              0.15 + val * 0.4
-            })`;
-            ctx.fillRect(x, y, 6, 6);
+            const [rr, gg, bb] = hslToRgb(hue, 0.8, 0.4 + val * 0.4);
+            pd[p] = rr;
+            pd[p + 1] = gg;
+            pd[p + 2] = bb;
+            pd[p + 3] = (0.15 + val * 0.4) * 255;
+            p += 4;
           }
         }
+        plasmaCtx.putImageData(plasmaImage, 0, 0);
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(plasmaCanvas, 0, 0, width, height);
       } else if (mode === "STARS") {
         const count = 200;
         for (let i = 0; i < count; i++) {
           const t = (i / count) * Math.PI * 2;
-          const radius = height * 0.25 * (0.5 + rms * intensityFactor);
+          const radius = height * 0.25 * (0.5 + level * intensityFactor);
           const cx = width / 2 + Math.cos(t + audioCtx.currentTime) * radius;
           const cy =
             height / 2 + Math.sin(t + audioCtx.currentTime * 1.2) * radius;
@@ -437,6 +503,7 @@ export default function App() {
       }
       disconnectCurrentSource();
       if (audioEl?.src) URL.revokeObjectURL(audioEl.src);
+      if (downloadUrlRef.current) URL.revokeObjectURL(downloadUrlRef.current);
       mediaElSrcRef.current = null;
       audioCtx.close();
     };
@@ -454,7 +521,12 @@ export default function App() {
       onClick={resumeAudio}
     >
       <canvas ref={canvasRef} style={{ display: "block" }} />
-      <audio ref={audioElRef} style={{ display: "none" }} />
+      <audio
+        ref={audioElRef}
+        style={{ display: "none" }}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+      />
       <div
         style={{
           position: "absolute",
@@ -479,6 +551,7 @@ export default function App() {
           }}
         >
           <select
+            aria-label="Visualization mode"
             value={mode}
             onChange={(e) => setMode(e.target.value)}
             style={{ padding: 6 }}
@@ -559,6 +632,8 @@ export default function App() {
             🎤 Mic
           </button>
           <label
+            htmlFor="audio-file-input"
+            className="file-label"
             style={{
               padding: "4px 10px",
               cursor: "pointer",
@@ -569,10 +644,21 @@ export default function App() {
           >
             🎵 Audio file
             <input
+              id="audio-file-input"
               type="file"
               accept="audio/*"
               onChange={onPickFile}
-              style={{ display: "none" }}
+              style={{
+                position: "absolute",
+                width: 1,
+                height: 1,
+                padding: 0,
+                margin: -1,
+                overflow: "hidden",
+                clip: "rect(0 0 0 0)",
+                whiteSpace: "nowrap",
+                border: 0,
+              }}
             />
           </label>
           {sourceType === "file" && fileName && (
