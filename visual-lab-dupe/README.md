@@ -16,7 +16,8 @@ visual modes, with a small on-screen control panel.
 | `STARS`    | Orbiting particles whose radius follows overall loudness.           |
 
 Two full-screen post effects — CRT scanlines and an RGB noise overlay — sit on
-top of every mode. A lyrics/text overlay can be toggled and edited live.
+top of every mode. A lyrics/text overlay can be toggled and edited live, and an
+optional beat detector pulses the visuals on bass hits.
 
 ## Controls
 
@@ -24,6 +25,7 @@ top of every mode. A lyrics/text overlay can be toggled and edited live.
 - **Color** — base color for `SCOPE`.
 - **Intensity** — scales reactivity, glow, and noise strength.
 - **Show lyrics** — toggle the text overlay.
+- **Beat pulse** — punch the visuals on detected bass hits (kick/beat).
 - **Lyrics / text** — the overlay string.
 - **Source** — switch the audio input between the **microphone** and a loaded
   **audio file**. When a file is selected it plays (looping) and drives the

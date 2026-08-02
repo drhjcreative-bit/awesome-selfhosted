@@ -20,6 +20,7 @@ export default function App() {
   const [intensity, setIntensity] = useState(0.7);
   const [showText, setShowText] = useState(true);
   const [lyrics, setLyrics] = useState("Night lights flicker in slow motion");
+  const [beat, setBeat] = useState(true);
   const [status, setStatus] = useState("Allow mic access to see audio-reactive visuals.");
   const [sourceType, setSourceType] = useState("mic"); // "mic" | "file"
   const [fileName, setFileName] = useState("");
@@ -29,8 +30,8 @@ export default function App() {
 
   // Live snapshot of the controls so the animation loop can read current values
   // without tearing down and rebuilding the AudioContext on every keystroke.
-  const controlsRef = useRef({ mode, color, intensity, showText, lyrics });
-  controlsRef.current = { mode, color, intensity, showText, lyrics };
+  const controlsRef = useRef({ mode, color, intensity, showText, lyrics, beat });
+  controlsRef.current = { mode, color, intensity, showText, lyrics, beat };
 
   const resumeAudio = () => {
     const ctx = audioCtxRef.current;
@@ -231,6 +232,13 @@ export default function App() {
     const timeData = new Uint8Array(bufferLength);
     const freqData = new Uint8Array(bufferLength);
 
+    // Beat tracking: compare instantaneous bass energy against a running
+    // average; a strong spike above it registers a beat and fires a decaying
+    // pulse that briefly boosts the visuals.
+    const bassBins = Math.max(1, Math.floor(bufferLength * 0.08));
+    let bassAvg = 0;
+    let pulse = 0;
+
     const hexToRgb = (hex) => {
       const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
       return m
@@ -239,7 +247,8 @@ export default function App() {
     };
 
     const draw = () => {
-      const { mode, color, intensity, showText, lyrics } = controlsRef.current;
+      const { mode, color, intensity, showText, lyrics, beat } =
+        controlsRef.current;
 
       ctx.fillStyle = "rgba(5,5,10,0.25)";
       ctx.fillRect(0, 0, width, height);
@@ -249,14 +258,26 @@ export default function App() {
 
       const [r, g, b] = hexToRgb(color);
       const baseColor = `rgb(${r}, ${g}, ${b})`;
-      const intensityFactor = 0.4 + intensity * 1.2;
 
       // Audio features
       let sum = 0;
-      for (let i = 0; i < bufferLength; i++) sum += freqData[i];
+      let bassSum = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        sum += freqData[i];
+        if (i < bassBins) bassSum += freqData[i];
+      }
       const rms = sum / bufferLength / 255;
       const centroid =
         freqData.reduce((acc, v, i) => acc + v * i, 0) / (sum || 1);
+
+      // Beat detection on bass energy, feeding a decaying pulse.
+      const bass = bassSum / bassBins / 255;
+      if (bass > bassAvg * 1.35 && bass > 0.12) pulse = 1;
+      pulse *= 0.9;
+      bassAvg = bassAvg * 0.92 + bass * 0.08;
+      const beatBoost = beat ? pulse * 0.6 : 0;
+
+      const intensityFactor = 0.4 + intensity * 1.2 + beatBoost;
 
       if (mode === "SCOPE") {
         ctx.lineWidth = 2;
@@ -476,6 +497,15 @@ export default function App() {
               style={{ marginLeft: 6 }}
             />
             Show lyrics
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={beat}
+              onChange={(e) => setBeat(e.target.checked)}
+              style={{ marginLeft: 6 }}
+            />
+            Beat pulse
           </label>
           <input
             type="text"
