@@ -239,6 +239,19 @@ export default function App() {
     let bassAvg = 0;
     let pulse = 0;
 
+    // Small offscreen tile of grayscale noise, regenerated each frame and tiled
+    // across the canvas as a repeating pattern. This keeps fine, animated grain
+    // while avoiding a full-resolution getImageData/putImageData every frame.
+    const NOISE_SIZE = 256;
+    const noiseCanvas = document.createElement("canvas");
+    noiseCanvas.width = NOISE_SIZE;
+    noiseCanvas.height = NOISE_SIZE;
+    const noiseCtx = noiseCanvas.getContext("2d");
+    const noiseImage = noiseCtx.createImageData(NOISE_SIZE, NOISE_SIZE);
+    for (let i = 3; i < noiseImage.data.length; i += 4) {
+      noiseImage.data[i] = 255; // opaque; blend strength comes from globalAlpha
+    }
+
     const hexToRgb = (hex) => {
       const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
       return m
@@ -373,17 +386,25 @@ export default function App() {
         ctx.fillRect(0, y, width, 2);
       }
 
-      // FX: noise overlay
+      // FX: noise overlay — regenerate the small tile, then blend it over the
+      // whole frame in "overlay" mode (gray 128 is neutral, so it both lightens
+      // and darkens like signed per-pixel noise, but far cheaper).
       if (intensity > 0 && width > 0 && height > 0) {
-        const noiseData = ctx.getImageData(0, 0, width, height);
-        const d = noiseData.data;
-        for (let i = 0; i < d.length; i += 4) {
-          const n = (Math.random() - 0.5) * 20 * intensity;
-          d[i] = Math.min(255, Math.max(0, d[i] + n));
-          d[i + 1] = Math.min(255, Math.max(0, d[i + 1] + n));
-          d[i + 2] = Math.min(255, Math.max(0, d[i + 2] + n));
+        const nd = noiseImage.data;
+        for (let i = 0; i < nd.length; i += 4) {
+          const v = (Math.random() * 255) | 0;
+          nd[i] = nd[i + 1] = nd[i + 2] = v;
         }
-        ctx.putImageData(noiseData, 0, 0);
+        noiseCtx.putImageData(noiseImage, 0, 0);
+        const pattern = ctx.createPattern(noiseCanvas, "repeat");
+        if (pattern) {
+          ctx.save();
+          ctx.globalAlpha = Math.min(1, intensity * 0.3);
+          ctx.globalCompositeOperation = "overlay";
+          ctx.fillStyle = pattern;
+          ctx.fillRect(0, 0, width, height);
+          ctx.restore();
+        }
       }
 
       // Lyrics overlay

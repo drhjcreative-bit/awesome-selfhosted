@@ -75,6 +75,11 @@ npm run lint      # oxlint
 
 ## Notes
 
+The grain overlay is drawn from a small (256×256) noise tile regenerated each
+frame and blended over the canvas as a repeating `overlay` pattern, rather than
+reading back and rewriting every pixel — much cheaper at high resolutions while
+keeping the same look.
+
 This is a prototype. The `AudioContext` and render loop are created once; the
 animation loop reads control values live via refs, so changing the color or
 typing lyrics does **not** rebuild the audio graph. The input source can be
