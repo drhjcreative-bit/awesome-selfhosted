@@ -28,6 +28,8 @@ top of every mode. A lyrics/text overlay can be toggled and edited live.
 - **Source** — switch the audio input between the **microphone** and a loaded
   **audio file**. When a file is selected it plays (looping) and drives the
   visuals; use the Play/Pause button to control it.
+- **Record** — capture the live canvas (with the current audio) to a `.webm`
+  clip; press again to stop, then use **Download clip**.
 
 ## Audio input
 
@@ -39,6 +41,15 @@ The visuals react to whichever source is selected:
   analyser to the speakers so you hear it while it drives the visuals. This is
   the path to point at a track or a DAW's rendered output for now; a direct DAW
   device feed can be selected via the OS/browser as a mic-style input later.
+
+## Recording
+
+Press **⏺ Record** to capture the canvas via `canvas.captureStream()` and
+`MediaRecorder`. The current audio is mixed in through a `MediaStreamDestination`
+tap on the audio graph, so the exported clip has sound (works for both mic and
+file sources). Press **⏹ Stop recording**, then **⬇ Download clip** to save the
+`.webm`. Recording uses VP9/Opus when available, falling back to VP8 then plain
+WebM; browsers without `MediaRecorder`/`captureStream` show a notice instead.
 
 ## Running
 

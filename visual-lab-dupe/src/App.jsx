@@ -11,6 +11,9 @@ export default function App() {
   const audioElRef = useRef(null);
   const mediaElSrcRef = useRef(null); // MediaElementSource can be created only once per element
   const animRef = useRef(null);
+  const streamDestRef = useRef(null); // taps the audio graph for recording
+  const recorderRef = useRef(null);
+  const chunksRef = useRef([]);
 
   const [mode, setMode] = useState("SCOPE");
   const [color, setColor] = useState("#00f0ff");
@@ -21,6 +24,8 @@ export default function App() {
   const [sourceType, setSourceType] = useState("mic"); // "mic" | "file"
   const [fileName, setFileName] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [downloadUrl, setDownloadUrl] = useState("");
 
   // Live snapshot of the controls so the animation loop can read current values
   // without tearing down and rebuilding the AudioContext on every keystroke.
@@ -134,6 +139,69 @@ export default function App() {
     if (file) connectFile(file);
   };
 
+  const pickRecordingMime = () => {
+    if (typeof MediaRecorder === "undefined") return null;
+    const candidates = [
+      "video/webm;codecs=vp9,opus",
+      "video/webm;codecs=vp8,opus",
+      "video/webm",
+    ];
+    return candidates.find((t) => MediaRecorder.isTypeSupported(t)) || null;
+  };
+
+  const toggleRecord = () => {
+    // Stop an in-progress recording.
+    if (recorderRef.current && recorderRef.current.state !== "inactive") {
+      recorderRef.current.stop();
+      return;
+    }
+
+    const canvas = canvasRef.current;
+    if (!canvas || typeof canvas.captureStream !== "function") {
+      setStatus("Recording isn't supported in this browser.");
+      return;
+    }
+    const mimeType = pickRecordingMime();
+    if (!mimeType) {
+      setStatus("Recording isn't supported in this browser.");
+      return;
+    }
+
+    resumeAudio();
+    const stream = canvas.captureStream(30);
+    // Mix in whatever audio is currently reaching the analyser (mic or file).
+    streamDestRef.current?.stream
+      .getAudioTracks()
+      .forEach((track) => stream.addTrack(track));
+
+    let recorder;
+    try {
+      recorder = new MediaRecorder(stream, { mimeType });
+    } catch (err) {
+      setStatus(`Could not start recording (${err.name}).`);
+      return;
+    }
+    recorderRef.current = recorder;
+    chunksRef.current = [];
+
+    recorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
+    };
+    recorder.onstop = () => {
+      const blob = new Blob(chunksRef.current, { type: mimeType });
+      setDownloadUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(blob);
+      });
+      setIsRecording(false);
+      setStatus(`Recording ready (${(blob.size / 1e6).toFixed(1)} MB).`);
+    };
+
+    recorder.start();
+    setIsRecording(true);
+    setStatus("Recording…");
+  };
+
   // Audio context + render loop are set up exactly once. Controls are read live
   // via refs; the input source can be swapped at runtime via the helpers above.
   useEffect(() => {
@@ -149,6 +217,12 @@ export default function App() {
     const analyser = audioCtx.createAnalyser();
     analyser.fftSize = 2048;
     analyserRef.current = analyser;
+
+    // A silent capture tap on the audio graph, used to add an audio track to
+    // recordings. It's not the speakers, so wiring it up never causes feedback.
+    const streamDest = audioCtx.createMediaStreamDestination();
+    analyser.connect(streamDest);
+    streamDestRef.current = streamDest;
 
     // Default to the mic, preserving the original prototype's behavior.
     connectMic();
@@ -316,6 +390,9 @@ export default function App() {
     return () => {
       cancelAnimationFrame(animRef.current);
       window.removeEventListener("resize", handleResize);
+      if (recorderRef.current && recorderRef.current.state !== "inactive") {
+        recorderRef.current.stop();
+      }
       disconnectCurrentSource();
       if (audioEl?.src) URL.revokeObjectURL(audioEl.src);
       mediaElSrcRef.current = null;
@@ -469,6 +546,38 @@ export default function App() {
                 {fileName}
               </span>
             </>
+          )}
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            flexWrap: "wrap",
+            alignItems: "center",
+            marginTop: 8,
+          }}
+        >
+          <button
+            type="button"
+            onClick={toggleRecord}
+            style={{
+              padding: "4px 10px",
+              cursor: "pointer",
+              color: isRecording ? "#ff5a5a" : undefined,
+              fontWeight: isRecording ? 700 : 400,
+            }}
+          >
+            {isRecording ? "⏹ Stop recording" : "⏺ Record"}
+          </button>
+          {downloadUrl && (
+            <a
+              href={downloadUrl}
+              download="visual-lab-recording.webm"
+              style={{ color: "#00f0ff", fontSize: 13 }}
+            >
+              ⬇ Download clip
+            </a>
           )}
         </div>
 
