@@ -1,0 +1,19 @@
+{
+  "name": "unify-remote",
+  "version": "0.1.0",
+  "description": "Use any of your devices (iPhone / iPad / Mac) as a remote, keyboard, and trackpad for the others, with WebRTC screen mirroring between devices.",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "hub": "node server/index.js --hub-only",
+    "host": "node server/host.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
