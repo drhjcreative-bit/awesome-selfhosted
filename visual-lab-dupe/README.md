@@ -71,7 +71,26 @@ Other scripts:
 npm run build     # production build to dist/
 npm run preview   # serve the production build
 npm run lint      # oxlint
+npm test          # run the unit tests once (Vitest)
+npm run test:watch # re-run tests on change
+npm run coverage  # unit tests + coverage report for src/lib/
 ```
+
+## Testing
+
+Pure, browser-independent logic lives in `src/lib/` so it can be unit-tested
+without a canvas, `AudioContext`, or DOM:
+
+- `color.js` — `hexToRgb` / `hslToRgb` used by the render loop.
+- `audioFeatures.js` — `computeAudioFeatures`, the per-frame loudness/centroid
+  analysis and bass beat detection extracted from the draw loop.
+- `mime.js` — `pickRecordingMime`, the recorder codec selection.
+
+Tests run under [Vitest](https://vitest.dev/) in a `node` environment and cover
+these helpers' branches and edge cases. Component and audio-graph integration
+tests (which need jsdom plus mocked Web Audio / `MediaRecorder` / canvas APIs)
+are a planned next layer; new files can opt into the DOM with a
+`// @vitest-environment jsdom` docblock.
 
 ## Notes
 

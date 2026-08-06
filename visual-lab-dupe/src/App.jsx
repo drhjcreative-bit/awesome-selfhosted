@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { hexToRgb, hslToRgb } from "./lib/color.js";
+import { computeAudioFeatures } from "./lib/audioFeatures.js";
+import { pickRecordingMime } from "./lib/mime.js";
 
 const modes = ["SCOPE", "SPECTRUM", "LAVA", "PLASMA", "STARS"];
 
@@ -153,16 +156,6 @@ export default function App() {
     }
   };
 
-  const pickRecordingMime = () => {
-    if (typeof MediaRecorder === "undefined") return null;
-    const candidates = [
-      "video/webm;codecs=vp9,opus",
-      "video/webm;codecs=vp8,opus",
-      "video/webm",
-    ];
-    return candidates.find((t) => MediaRecorder.isTypeSupported(t)) || null;
-  };
-
   const toggleRecord = () => {
     // Stop an in-progress recording.
     if (recorderRef.current && recorderRef.current.state !== "inactive") {
@@ -291,31 +284,6 @@ export default function App() {
     const plasmaCtx = plasmaCanvas.getContext("2d");
     const plasmaImage = plasmaCtx.createImageData(PLASMA_W, PLASMA_H);
 
-    // Minimal HSL->RGB (h in [0,360), s/l in [0,1]) for the plasma buffer.
-    const hslToRgb = (h, s, l) => {
-      const c = (1 - Math.abs(2 * l - 1)) * s;
-      const hp = (((h % 360) + 360) % 360) / 60;
-      const x = c * (1 - Math.abs((hp % 2) - 1));
-      let r = 0;
-      let g = 0;
-      let b = 0;
-      if (hp < 1) [r, g] = [c, x];
-      else if (hp < 2) [r, g] = [x, c];
-      else if (hp < 3) [g, b] = [c, x];
-      else if (hp < 4) [g, b] = [x, c];
-      else if (hp < 5) [r, b] = [x, c];
-      else [r, b] = [c, x];
-      const m = l - c / 2;
-      return [(r + m) * 255, (g + m) * 255, (b + m) * 255];
-    };
-
-    const hexToRgb = (hex) => {
-      const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return m
-        ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)]
-        : [0, 240, 255];
-    };
-
     const draw = () => {
       const { mode, color, intensity, showText, lyrics, beat } =
         controlsRef.current;
@@ -329,27 +297,19 @@ export default function App() {
       const [r, g, b] = hexToRgb(color);
       const baseColor = `rgb(${r}, ${g}, ${b})`;
 
-      // Audio features (single pass over the bins)
-      let sum = 0;
-      let bassSum = 0;
-      let weighted = 0;
-      for (let i = 0; i < bufferLength; i++) {
-        const v = freqData[i];
-        sum += v;
-        weighted += v * i;
-        if (i < bassBins) bassSum += v;
-      }
-      const level = sum / bufferLength / 255; // mean magnitude, 0..1
-      const centroid = weighted / (sum || 1);
-
-      // Beat detection on bass energy, feeding a decaying pulse.
-      const bass = bassSum / bassBins / 255;
-      if (bass > bassAvg * 1.35 && bass > 0.12) pulse = 1;
-      pulse *= 0.9;
-      bassAvg = bassAvg * 0.92 + bass * 0.08;
-      const beatBoost = beat ? pulse * 0.6 : 0;
-
-      const intensityFactor = 0.4 + intensity * 1.2 + beatBoost;
+      // Audio features + beat detection (single pass over the bins). The
+      // running beat state (bassAvg/pulse) is threaded through frame to frame.
+      const { level, centroid, intensityFactor, bassAvg: nextBassAvg, pulse: nextPulse } =
+        computeAudioFeatures(freqData, {
+          bufferLength,
+          bassBins,
+          bassAvg,
+          pulse,
+          beat,
+          intensity,
+        });
+      bassAvg = nextBassAvg;
+      pulse = nextPulse;
 
       if (mode === "SCOPE") {
         ctx.lineWidth = 2;
