@@ -16,6 +16,7 @@ export default function App() {
   const chunksRef = useRef([]);
   const sourceReqRef = useRef(0); // invalidates in-flight async source setup
   const downloadUrlRef = useRef(""); // mirror of downloadUrl for unmount cleanup
+  const selectedDeviceIdRef = useRef(""); // "" = default input; read by connectMic
 
   const [mode, setMode] = useState("SCOPE");
   const [color, setColor] = useState("#00f0ff");
@@ -29,6 +30,8 @@ export default function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState("");
+  const [inputDevices, setInputDevices] = useState([]); // available audio inputs
+  const [selectedDeviceId, setSelectedDeviceId] = useState(""); // "" = default
 
   // Live snapshot of the controls so the animation loop can read current values
   // without tearing down and rebuilding the AudioContext on every keystroke.
@@ -69,6 +72,31 @@ export default function App() {
     }
   };
 
+  // Enumerate audio inputs so the user can pick a specific device (e.g. a
+  // second mic or a virtual loopback/DAW feed). Device labels are only exposed
+  // once mic permission has been granted, so this is refreshed after connect.
+  const refreshInputDevices = async () => {
+    if (!navigator.mediaDevices?.enumerateDevices) return;
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const inputs = devices.filter(
+        (d) => d.kind === "audioinput" && d.deviceId,
+      );
+      setInputDevices(inputs);
+      // If the previously selected device is gone (unplugged), fall back to the
+      // default so the picker doesn't point at a device that no longer exists.
+      if (
+        selectedDeviceIdRef.current &&
+        !inputs.some((d) => d.deviceId === selectedDeviceIdRef.current)
+      ) {
+        selectedDeviceIdRef.current = "";
+        setSelectedDeviceId("");
+      }
+    } catch {
+      /* enumeration unavailable */
+    }
+  };
+
   const connectMic = async () => {
     const ctx = audioCtxRef.current;
     if (!ctx) return;
@@ -76,7 +104,12 @@ export default function App() {
     const reqId = ++sourceReqRef.current;
     setSourceType("mic");
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Honor the picked input device; "" means let the browser choose default.
+      const deviceId = selectedDeviceIdRef.current;
+      const audioConstraints = deviceId ? { deviceId: { exact: deviceId } } : true;
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: audioConstraints,
+      });
       // A newer source request (or unmount) superseded this one while the
       // permission prompt was open — drop the stream instead of wiring it up.
       if (reqId !== sourceReqRef.current || ctx.state === "closed") {
@@ -88,10 +121,20 @@ export default function App() {
       src.connect(analyserRef.current);
       sourceRef.current = src;
       await ctx.resume();
+      // Now that permission is granted, device labels are readable — populate
+      // (or refresh) the picker.
+      refreshInputDevices();
       setStatus("Mic connected.");
     } catch (err) {
       setStatus(`Mic unavailable (${err.name}). Visuals will stay idle.`);
     }
+  };
+
+  const onPickDevice = (e) => {
+    const deviceId = e.target.value;
+    selectedDeviceIdRef.current = deviceId;
+    setSelectedDeviceId(deviceId);
+    connectMic();
   };
 
   const connectFile = async (file) => {
@@ -495,9 +538,20 @@ export default function App() {
     };
     window.addEventListener("resize", handleResize);
 
+    // Keep the input-device picker in sync as devices are plugged in/removed.
+    const handleDeviceChange = () => refreshInputDevices();
+    navigator.mediaDevices?.addEventListener?.(
+      "devicechange",
+      handleDeviceChange,
+    );
+
     return () => {
       cancelAnimationFrame(animRef.current);
       window.removeEventListener("resize", handleResize);
+      navigator.mediaDevices?.removeEventListener?.(
+        "devicechange",
+        handleDeviceChange,
+      );
       if (recorderRef.current && recorderRef.current.state !== "inactive") {
         recorderRef.current.stop();
       }
@@ -631,6 +685,21 @@ export default function App() {
           >
             🎤 Mic
           </button>
+          {sourceType === "mic" && inputDevices.length > 1 && (
+            <select
+              aria-label="Audio input device"
+              value={selectedDeviceId}
+              onChange={onPickDevice}
+              style={{ padding: 4, maxWidth: 200 }}
+            >
+              <option value="">Default input</option>
+              {inputDevices.map((d, i) => (
+                <option key={d.deviceId} value={d.deviceId}>
+                  {d.label || `Microphone ${i + 1}`}
+                </option>
+              ))}
+            </select>
+          )}
           <label
             htmlFor="audio-file-input"
             className="file-label"
