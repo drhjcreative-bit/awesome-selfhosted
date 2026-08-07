@@ -26,8 +26,11 @@ npm install
 npm start
 ```
 
-The console prints the hub's addresses, e.g. `http://192.168.1.20:8765`.
-Open that URL in Safari on your iPhone/iPad (or any browser on another Mac).
+The console prints the hub's addresses, e.g. `http://192.168.1.20:8765`, and a
+6-digit **pairing PIN**. Open the URL in Safari on your iPhone/iPad (or any
+browser on another Mac) and enter the PIN when prompted — each device asks
+once and remembers it. Set `UNIFY_PIN=123456` to fix the PIN across restarts,
+or `UNIFY_PIN=off` to disable pairing on a fully trusted network.
 Tip: use Safari's **Share → Add to Home Screen** to get a full-screen app icon.
 
 On first run on the Mac, the input bridge is compiled and macOS will ask for
@@ -53,8 +56,8 @@ what allows injected mouse/keyboard events.
 ### Other layouts
 
 - Hub on the Mac, but you only want it to relay (no control): `npm run hub`
-- Hub on one machine, control a *different* Mac:
-  on the second Mac run `node server/host.js ws://<hub-address>:8765/ws`
+- Hub on one machine, control a *different* Mac: on the second Mac run
+  `node server/host.js ws://<hub-address>:8765/ws <pairing-pin>`
 
 ## Platform capabilities
 
@@ -111,7 +114,10 @@ To use a device as an **extended display** rather than a mirror:
 
 ## Security notes
 
-The hub trusts every device on your network — anyone who can reach the port
-can send input to the Mac. Keep it on a trusted LAN. (Reasonable next steps:
-a pairing PIN on `hello`, and HTTPS/WSS with a self-signed cert; both slot
-into `server/hub.js` cleanly.)
+Joining the hub requires the pairing PIN printed at startup, so a random
+device on your Wi-Fi can't register itself and send input to the Mac. The
+PIN travels over plain `ws://` on your LAN — keep the hub on a trusted
+network, and rotate the PIN by restarting (or set `UNIFY_PIN`). A reasonable
+next step is HTTPS/WSS with a self-signed cert, which also unlocks
+`getDisplayMedia` screen sharing in browsers that require a secure context
+for non-localhost origins.

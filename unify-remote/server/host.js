@@ -10,7 +10,8 @@
 // Accessibility for the terminal app running this process.
 //
 // Standalone usage (hub running elsewhere):
-//   node server/host.js ws://<hub-address>:8765/ws
+//   node server/host.js ws://<hub-address>:8765/ws <pairing-pin>
+// (or pass the PIN via the UNIFY_PIN environment variable)
 
 import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -52,7 +53,7 @@ function startBridge() {
 
 const bridgeRef = { current: null };
 
-export async function startHost(hubUrl) {
+export async function startHost(hubUrl, pin = null) {
   ensureBridgeBuilt();
   bridgeRef.current = startBridge();
 
@@ -71,6 +72,7 @@ export async function startHost(hubUrl) {
           name: `${os.hostname().replace(/\.local$/, '')} (Mac)`,
           kind: 'mac',
           capabilities: ['control'],
+          pin,
         })
       );
       console.log('[host] connected to hub — this Mac can now be controlled');
@@ -82,6 +84,9 @@ export async function startHost(hubUrl) {
         msg = JSON.parse(raw);
       } catch {
         return;
+      }
+      if (msg.type === 'auth' && msg.ok === false) {
+        console.error('[host] hub rejected the pairing PIN — pass it as the second argument or via UNIFY_PIN');
       }
       if (msg.type === 'input' && msg.event) send(msg.event);
     });
@@ -97,7 +102,8 @@ export async function startHost(hubUrl) {
 // Run directly: `node server/host.js [ws://hub:8765/ws]`
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const url = process.argv[2] || 'ws://localhost:8765/ws';
-  startHost(url).catch((err) => {
+  const pin = process.argv[3] || process.env.UNIFY_PIN || null;
+  startHost(url, pin).catch((err) => {
     console.error('[host]', err.message);
     process.exit(1);
   });

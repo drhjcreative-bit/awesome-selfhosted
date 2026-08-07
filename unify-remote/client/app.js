@@ -46,7 +46,13 @@ function connect() {
 
   ws.onmessage = (e) => {
     const msg = JSON.parse(e.data);
-    if (msg.type === 'welcome') {
+    if (msg.type === 'auth' && msg.ok === false) {
+      const entered = prompt('Enter the pairing PIN shown in the hub console:');
+      if (entered !== null) {
+        localStorage.setItem('unify-pin', entered.trim());
+        sendHello();
+      }
+    } else if (msg.type === 'welcome') {
       myId = msg.id;
       updatePeers(msg.peers);
     } else if (msg.type === 'peers') {
@@ -61,7 +67,15 @@ function connect() {
 
 function sendHello() {
   const capabilities = receiving ? ['control'] : [];
-  ws.send(JSON.stringify({ type: 'hello', name: deviceName, kind: deviceKind, capabilities }));
+  ws.send(
+    JSON.stringify({
+      type: 'hello',
+      name: deviceName,
+      kind: deviceKind,
+      capabilities,
+      pin: localStorage.getItem('unify-pin') || '',
+    })
+  );
 }
 
 function send(obj) {

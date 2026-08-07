@@ -4,11 +4,12 @@
 //
 // Protocol (JSON messages):
 //   client → hub:
-//     { type: 'hello', name, kind, capabilities }   register this device
+//     { type: 'hello', name, kind, capabilities, pin }   register this device
 //     { type: 'input', target, event }              input event for a host device
 //     { type: 'rtc', target, payload }              WebRTC signaling (offer/answer/ice)
 //     { type: 'share-state', sharing }              announce screen-share availability
 //   hub → client:
+//     { type: 'auth', ok: false }                   wrong/missing pairing PIN
 //     { type: 'welcome', id, peers }                your id + current peer list
 //     { type: 'peers', peers }                      peer list changed
 //     { type: 'input', from, event }                relayed input event
@@ -16,7 +17,7 @@
 
 import { randomUUID } from 'node:crypto';
 
-export function createHub(wss) {
+export function createHub(wss, { pin = null } = {}) {
   /** @type {Map<string, {ws: import('ws').WebSocket, info: object}>} */
   const peers = new Map();
 
@@ -43,6 +44,10 @@ export function createHub(wss) {
       }
 
       if (msg.type === 'hello') {
+        if (pin && String(msg.pin || '') !== pin) {
+          ws.send(JSON.stringify({ type: 'auth', ok: false }));
+          return;
+        }
         peers.set(id, {
           ws,
           info: {

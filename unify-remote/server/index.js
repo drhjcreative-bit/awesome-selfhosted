@@ -13,6 +13,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { randomInt } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { createHub } from './hub.js';
@@ -20,6 +21,13 @@ import { createHub } from './hub.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLIENT_DIR = path.join(__dirname, '..', 'client');
 const PORT = Number(process.env.PORT || 8765);
+
+// Pairing PIN: devices must present it to join. Set UNIFY_PIN to fix it
+// across restarts, or UNIFY_PIN=off to disable pairing entirely.
+const PIN =
+  process.env.UNIFY_PIN === 'off'
+    ? null
+    : process.env.UNIFY_PIN || String(randomInt(100000, 1000000));
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -51,7 +59,7 @@ const server = http.createServer((req, res) => {
 });
 
 const wss = new WebSocketServer({ server, path: '/ws' });
-createHub(wss);
+createHub(wss, { pin: PIN });
 
 server.listen(PORT, () => {
   const addrs = Object.values(os.networkInterfaces())
@@ -61,13 +69,15 @@ server.listen(PORT, () => {
   console.log('Unify Remote hub running:');
   for (const a of addrs) console.log(`  http://${a}:${PORT}`);
   console.log(`  http://localhost:${PORT}`);
+  if (PIN) console.log(`\nPairing PIN: ${PIN}  (devices are asked for it once)`);
+  else console.log('\nPairing PIN disabled (UNIFY_PIN=off)');
 });
 
 // On macOS, also start the native input host so this machine can be
 // controlled, unless the user asked for the hub only.
 if (process.platform === 'darwin' && !process.argv.includes('--hub-only')) {
   const { startHost } = await import('./host.js');
-  startHost(`ws://localhost:${PORT}/ws`).catch((err) => {
+  startHost(`ws://localhost:${PORT}/ws`, PIN).catch((err) => {
     console.error('[host] failed to start native input host:', err.message);
     console.error('[host] the hub still works; other devices can connect as remotes/screens.');
   });
