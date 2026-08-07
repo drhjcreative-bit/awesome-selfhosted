@@ -79,8 +79,12 @@ export default function App() {
     if (!navigator.mediaDevices?.enumerateDevices) return;
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
+      // Drop Chrome's synthetic "default" input — the picker already renders its
+      // own empty-value "Default input" option, and the synthetic entry would
+      // otherwise duplicate it (and inflate the count that gates the picker).
       const inputs = devices.filter(
-        (d) => d.kind === "audioinput" && d.deviceId,
+        (d) =>
+          d.kind === "audioinput" && d.deviceId && d.deviceId !== "default",
       );
       setInputDevices(inputs);
       // If the previously selected device is gone (unplugged), fall back to the
@@ -91,6 +95,10 @@ export default function App() {
       ) {
         selectedDeviceIdRef.current = "";
         setSelectedDeviceId("");
+        // If the mic is the live source, the stream we were capturing from is
+        // now dead — reconnect to the default input (which tears down the stale
+        // capture). In file mode there's nothing to reconnect.
+        if (micStreamRef.current) connectMic();
       }
     } catch {
       /* enumeration unavailable */
@@ -126,6 +134,10 @@ export default function App() {
       refreshInputDevices();
       setStatus("Mic connected.");
     } catch (err) {
+      // Ignore rejections from a request that's already been superseded (a newer
+      // connectMic/connectFile bumped sourceReqRef) or after teardown, so a
+      // stale failure can't clobber the current source's status.
+      if (reqId !== sourceReqRef.current || ctx.state === "closed") return;
       setStatus(`Mic unavailable (${err.name}). Visuals will stay idle.`);
     }
   };
