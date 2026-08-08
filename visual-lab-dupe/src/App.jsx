@@ -3,7 +3,28 @@ import { hexToRgb, hslToRgb } from "./lib/color.js";
 import { computeAudioFeatures } from "./lib/audioFeatures.js";
 import { pickRecordingMime } from "./lib/mime.js";
 
-const modes = ["SCOPE", "SPECTRUM", "LAVA", "PLASMA", "STARS"];
+const modes = ["SCOPE", "SPECTRUM", "LAVA", "PLASMA", "STARS", "ORB"];
+
+// Collapsible panel section in the Sidestage-style typewriter aesthetic:
+// an uppercase ( LABEL ) row with a +/− toggle, hairline-separated.
+function Section({ label, open, onToggle, children }) {
+  return (
+    <section className="panel-section">
+      <button
+        type="button"
+        className="section-head"
+        onClick={onToggle}
+        aria-expanded={open}
+      >
+        <span>( {label} )</span>
+        <span className="section-toggle" aria-hidden="true">
+          {open ? "−" : "+"}
+        </span>
+      </button>
+      {open && <div className="section-body">{children}</div>}
+    </section>
+  );
+}
 
 export default function App() {
   const canvasRef = useRef(null);
@@ -22,10 +43,10 @@ export default function App() {
   const selectedDeviceIdRef = useRef(""); // "" = default input; read by connectMic
 
   const [mode, setMode] = useState("SCOPE");
-  const [color, setColor] = useState("#00f0ff");
+  const [color, setColor] = useState("#a7ff4a");
   const [intensity, setIntensity] = useState(0.7);
   const [showText, setShowText] = useState(true);
-  const [lyrics, setLyrics] = useState("Night lights flicker in slow motion");
+  const [lyrics, setLyrics] = useState("STAY STRANGE");
   const [beat, setBeat] = useState(true);
   const [status, setStatus] = useState("Allow mic access to see audio-reactive visuals.");
   const [sourceType, setSourceType] = useState("mic"); // "mic" | "file"
@@ -35,6 +56,14 @@ export default function App() {
   const [downloadUrl, setDownloadUrl] = useState("");
   const [inputDevices, setInputDevices] = useState([]); // available audio inputs
   const [selectedDeviceId, setSelectedDeviceId] = useState(""); // "" = default
+  // Purely presentational accordion state; toggling never touches the audio graph.
+  const [openSections, setOpenSections] = useState({
+    controls: true,
+    source: true,
+    output: true,
+  });
+  const toggleSection = (key) =>
+    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
   // Live snapshot of the controls so the animation loop can read current values
   // without tearing down and rebuilding the AudioContext on every keystroke.
@@ -331,6 +360,27 @@ export default function App() {
     // PLASMA is a low-frequency field, so it's computed once into a small
     // ImageData buffer (no hsla strings / per-block fillRect) and upscaled with
     // drawImage, which is far cheaper than tens of thousands of fills per frame.
+    // ORB: particles spread over a sphere with a Fibonacci lattice, spun around
+    // the vertical axis and drawn as short rainbow streaks. Each particle keeps
+    // its own speed multiplier so neighboring bands drift apart, which is what
+    // sells the "which way is it spinning" illusion.
+    const ORB_COUNT = 640;
+    const GOLDEN = Math.PI * (3 - Math.sqrt(5));
+    const orbParticles = new Array(ORB_COUNT);
+    for (let i = 0; i < ORB_COUNT; i++) {
+      const y = 1 - (i / (ORB_COUNT - 1)) * 2;
+      const ringRadius = Math.sqrt(1 - y * y);
+      const theta = GOLDEN * i;
+      orbParticles[i] = {
+        x: Math.cos(theta) * ringRadius,
+        y,
+        z: Math.sin(theta) * ringRadius,
+        hue: (i * 47) % 360,
+        speed: 0.6 + ((i * 31) % 100) / 125,
+      };
+    }
+    let orbAngle = 0;
+
     const PLASMA_W = 160;
     const PLASMA_H = 90;
     const plasmaCanvas = document.createElement("canvas");
@@ -459,6 +509,39 @@ export default function App() {
           })`;
           ctx.fill();
         }
+      } else if (mode === "ORB") {
+        const radius =
+          Math.min(width, height) *
+          0.32 *
+          (0.85 + level * 0.35 * intensityFactor);
+        const cx = width / 2;
+        const cy = height / 2;
+        orbAngle += 0.008 + level * 0.03 * intensityFactor;
+        // Streak length (in radians of rotation) grows with loudness.
+        const trail = 0.1 + level * 0.45 * intensityFactor;
+        ctx.lineCap = "round";
+        for (let i = 0; i < ORB_COUNT; i++) {
+          const p = orbParticles[i];
+          const a = orbAngle * p.speed;
+          const cosA = Math.cos(a);
+          const sinA = Math.sin(a);
+          const headX = p.x * cosA - p.z * sinA;
+          const headZ = p.x * sinA + p.z * cosA;
+          const cosB = Math.cos(a - trail);
+          const sinB = Math.sin(a - trail);
+          const tailX = p.x * cosB - p.z * sinB;
+          const depth = (headZ + 1) / 2; // 0 = back of sphere, 1 = front
+          const bin = freqData[i % bufferLength] / 255;
+          ctx.strokeStyle = `hsla(${(p.hue + centroid) % 360}, 90%, ${
+            45 + depth * 25
+          }%, ${0.2 + depth * 0.6})`;
+          ctx.lineWidth = 1 + depth * 1.5 + bin * 2 * intensityFactor;
+          ctx.beginPath();
+          ctx.moveTo(cx + tailX * radius, cy + p.y * radius);
+          ctx.lineTo(cx + headX * radius, cy + p.y * radius);
+          ctx.stroke();
+        }
+        ctx.lineCap = "butt";
       }
 
       // FX: CRT scanlines
@@ -488,15 +571,17 @@ export default function App() {
         }
       }
 
-      // Lyrics overlay
+      // Lyrics overlay — typewriter caps to match the DUANYSWRLD chrome.
       if (showText) {
-        ctx.font = "24px sans-serif";
+        ctx.font = '500 20px "Courier New", Courier, monospace';
+        ctx.letterSpacing = "6px"; // no-op where unsupported
         ctx.fillStyle = "white";
         ctx.textAlign = "center";
         ctx.shadowColor = "black";
         ctx.shadowBlur = 6;
-        ctx.fillText(lyrics, width / 2, height - 60);
+        ctx.fillText(lyrics.toUpperCase(), width / 2, height - 60);
         ctx.shadowBlur = 0;
+        ctx.letterSpacing = "0px";
       }
 
       animRef.current = requestAnimationFrame(draw);
@@ -537,67 +622,55 @@ export default function App() {
   }, []);
 
   return (
-    <div
-      style={{
-        position: "relative",
-        height: "100vh",
-        background: "#05050a",
-        overflow: "hidden",
-      }}
-      onClick={resumeAudio}
-    >
-      <canvas ref={canvasRef} style={{ display: "block" }} />
+    <div className="stage" onClick={resumeAudio}>
+      <canvas ref={canvasRef} className="stage-canvas" />
       <audio
         ref={audioElRef}
         style={{ display: "none" }}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
       />
-      <div
-        style={{
-          position: "absolute",
-          top: 12,
-          left: 12,
-          color: "#fff",
-          fontFamily: "sans-serif",
-          background: "rgba(0,0,0,0.4)",
-          padding: 10,
-          borderRadius: 8,
-        }}
-      >
-        <h1 style={{ margin: "0 0 8px", fontSize: 18 }}>
-          Visual Lab Dupe (Prototype)
+      <div className="center-rule" aria-hidden="true" />
+
+      <header className="hud-top">
+        <h1 className="wordmark">
+          DU<span className="wordmark-flip">A</span>NYSWRLD
+          <span className="wordmark-glyph" aria-hidden="true">
+            ✳
+          </span>
         </h1>
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            flexWrap: "wrap",
-            alignItems: "center",
-          }}
+        <div className="tagline">( AUDIO-REACTIVE VISUAL LAB )</div>
+      </header>
+
+      <aside className="panel">
+        <Section
+          label="CONTROLS"
+          open={openSections.controls}
+          onToggle={() => toggleSection("controls")}
         >
-          <select
-            aria-label="Visualization mode"
-            value={mode}
-            onChange={(e) => setMode(e.target.value)}
-            style={{ padding: 6 }}
-          >
-            {modes.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-          <label>
+          <label className="field">
+            Mode
+            <select
+              aria-label="Visualization mode"
+              value={mode}
+              onChange={(e) => setMode(e.target.value)}
+            >
+              {modes.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
             Color
             <input
               type="color"
               value={color}
               onChange={(e) => setColor(e.target.value)}
-              style={{ marginLeft: 6, verticalAlign: "middle" }}
             />
           </label>
-          <label>
+          <label className="field">
             Intensity
             <input
               type="range"
@@ -606,160 +679,131 @@ export default function App() {
               step={0.01}
               value={intensity}
               onChange={(e) => setIntensity(parseFloat(e.target.value))}
-              style={{ marginLeft: 6, verticalAlign: "middle" }}
             />
           </label>
-          <label>
+          <label className="field">
+            Show lyrics
             <input
               type="checkbox"
               checked={showText}
               onChange={(e) => setShowText(e.target.checked)}
-              style={{ marginLeft: 6 }}
             />
-            Show lyrics
           </label>
-          <label>
+          <label className="field">
+            Beat pulse
             <input
               type="checkbox"
               checked={beat}
               onChange={(e) => setBeat(e.target.checked)}
-              style={{ marginLeft: 6 }}
             />
-            Beat pulse
           </label>
           <input
             type="text"
             value={lyrics}
             onChange={(e) => setLyrics(e.target.value)}
-            placeholder="Lyrics / text"
-            style={{ padding: 6, minWidth: 220 }}
+            placeholder="LYRICS / TEXT"
+            aria-label="Lyrics / text overlay"
           />
-        </div>
+        </Section>
 
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            flexWrap: "wrap",
-            alignItems: "center",
-            marginTop: 8,
-          }}
+        <Section
+          label="SOURCE"
+          open={openSections.source}
+          onToggle={() => toggleSection("source")}
         >
-          <span style={{ fontSize: 13, opacity: 0.8 }}>Source:</span>
-          <button
-            type="button"
-            onClick={connectMic}
-            style={{
-              padding: "4px 10px",
-              cursor: "pointer",
-              fontWeight: sourceType === "mic" ? 700 : 400,
-            }}
-          >
-            🎤 Mic
-          </button>
-          {sourceType === "mic" && inputDevices.length > 1 && (
-            <select
-              aria-label="Audio input device"
-              value={selectedDeviceId}
-              onChange={onPickDevice}
-              style={{ padding: 4, maxWidth: 200 }}
+          <div className="btn-row">
+            <button
+              type="button"
+              onClick={connectMic}
+              className={`ghost-btn${sourceType === "mic" ? " is-active" : ""}`}
             >
-              <option value="">Default input</option>
-              {inputDevices.map((d, i) => (
-                <option key={d.deviceId} value={d.deviceId}>
-                  {d.label || `Microphone ${i + 1}`}
-                </option>
-              ))}
-            </select>
-          )}
-          <label
-            htmlFor="audio-file-input"
-            className="file-label"
-            style={{
-              padding: "4px 10px",
-              cursor: "pointer",
-              border: "1px solid rgba(255,255,255,0.4)",
-              borderRadius: 4,
-              fontWeight: sourceType === "file" ? 700 : 400,
-            }}
-          >
-            🎵 Audio file
-            <input
-              id="audio-file-input"
-              type="file"
-              accept="audio/*"
-              onChange={onPickFile}
-              style={{
-                position: "absolute",
-                width: 1,
-                height: 1,
-                padding: 0,
-                margin: -1,
-                overflow: "hidden",
-                clip: "rect(0 0 0 0)",
-                whiteSpace: "nowrap",
-                border: 0,
-              }}
-            />
-          </label>
-          {sourceType === "file" && fileName && (
-            <>
-              <button
-                type="button"
-                onClick={togglePlay}
-                style={{ padding: "4px 10px", cursor: "pointer" }}
-              >
-                {isPlaying ? "⏸ Pause" : "▶ Play"}
-              </button>
-              <span
+              Mic
+            </button>
+            <label
+              htmlFor="audio-file-input"
+              className={`ghost-btn file-label${
+                sourceType === "file" ? " is-active" : ""
+              }`}
+            >
+              Audio file
+              <input
+                id="audio-file-input"
+                type="file"
+                accept="audio/*"
+                onChange={onPickFile}
                 style={{
-                  fontSize: 12,
-                  opacity: 0.8,
-                  maxWidth: 220,
+                  position: "absolute",
+                  width: 1,
+                  height: 1,
+                  padding: 0,
+                  margin: -1,
                   overflow: "hidden",
-                  textOverflow: "ellipsis",
+                  clip: "rect(0 0 0 0)",
                   whiteSpace: "nowrap",
+                  border: 0,
                 }}
+              />
+            </label>
+            {sourceType === "file" && fileName && (
+              <button type="button" onClick={togglePlay} className="ghost-btn">
+                {isPlaying ? "Pause" : "Play"}
+              </button>
+            )}
+          </div>
+          {sourceType === "mic" && inputDevices.length > 1 && (
+            <label className="field">
+              Input device
+              <select
+                aria-label="Audio input device"
+                value={selectedDeviceId}
+                onChange={onPickDevice}
               >
-                {fileName}
-              </span>
-            </>
+                <option value="">Default input</option>
+                {inputDevices.map((d, i) => (
+                  <option key={d.deviceId} value={d.deviceId}>
+                    {d.label || `Microphone ${i + 1}`}
+                  </option>
+                ))}
+              </select>
+            </label>
           )}
-        </div>
+          {sourceType === "file" && fileName && (
+            <span className="file-name">{fileName}</span>
+          )}
+        </Section>
 
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            flexWrap: "wrap",
-            alignItems: "center",
-            marginTop: 8,
-          }}
+        <Section
+          label="OUTPUT"
+          open={openSections.output}
+          onToggle={() => toggleSection("output")}
         >
-          <button
-            type="button"
-            onClick={toggleRecord}
-            style={{
-              padding: "4px 10px",
-              cursor: "pointer",
-              color: isRecording ? "#ff5a5a" : undefined,
-              fontWeight: isRecording ? 700 : 400,
-            }}
-          >
-            {isRecording ? "⏹ Stop recording" : "⏺ Record"}
-          </button>
-          {downloadUrl && (
-            <a
-              href={downloadUrl}
-              download="visual-lab-recording.webm"
-              style={{ color: "#00f0ff", fontSize: 13 }}
+          <div className="btn-row">
+            <button
+              type="button"
+              onClick={toggleRecord}
+              className={`ghost-btn${isRecording ? " is-alarm" : ""}`}
             >
-              ⬇ Download clip
-            </a>
-          )}
-        </div>
+              {isRecording ? "Stop recording" : "Record"}
+            </button>
+            {downloadUrl && (
+              <a
+                href={downloadUrl}
+                download="duanyswrld-recording.webm"
+                className="download-link"
+              >
+                Download clip
+              </a>
+            )}
+          </div>
+        </Section>
 
-        <p style={{ fontSize: 12, opacity: 0.8, margin: "6px 0 0" }}>{status}</p>
+        <p className="status" role="status">
+          {status}
+        </p>
+      </aside>
+
+      <div className="hud-bottom" aria-hidden="true">
+        ( STAY STRANGE )
       </div>
     </div>
   );
