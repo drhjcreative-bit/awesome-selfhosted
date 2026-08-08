@@ -40,6 +40,10 @@ The panel is split into collapsible `( CONTROLS )` / `( SOURCE )` /
 - **Source** — switch the audio input between the **microphone** and a loaded
   **audio file**. When a file is selected it plays (looping) and drives the
   visuals; use the Play/Pause button to control it.
+- **Input device** — in mic mode, when more than one audio input is available,
+  pick which one drives the visuals (a specific mic, or a virtual
+  loopback/DAW device exposed to the browser as an input). Device names appear
+  once microphone access has been granted.
 - **Record** — capture the live canvas (with the current audio) to a `.webm`
   clip; press again to stop, then use **Download clip**.
 
@@ -50,9 +54,10 @@ The visuals react to whichever source is selected:
 - **Mic** — captures live microphone audio (analysis only; not routed to the
   speakers, so there's no feedback).
 - **Audio file** — pick any local audio file; it's routed through the
-  analyser to the speakers so you hear it while it drives the visuals. This is
-  the path to point at a track or a DAW's rendered output for now; a direct DAW
-  device feed can be selected via the OS/browser as a mic-style input later.
+  analyser to the speakers so you hear it while it drives the visuals. Use this
+  to point at a track or a DAW's rendered output. For a live DAW feed, expose it
+  to the browser as an input device (via the OS or a virtual audio driver) and
+  select it from the **Input device** picker in mic mode.
 
 ## Recording
 
