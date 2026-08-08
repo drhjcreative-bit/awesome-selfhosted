@@ -4,6 +4,15 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* DUANYSWRLD palette — near-black ground, warm off-white ink, acid accent. */
+  --ink: #e8e6e0;
+  --ink-dim: rgba(232, 230, 224, 0.62);
+  --hairline: rgba(232, 230, 224, 0.18);
+  --ground: #050505;
+  --accent: #a7ff4a;
+  --alarm: #ff5a5a;
+  --mono: "Nimbus Mono PS", "Courier New", Courier, ui-monospace, monospace;
 }
 
 * {
@@ -20,12 +29,283 @@ body,
 }
 
 body {
-  background: #05050a;
+  background: var(--ground);
   overflow: hidden;
+  font-family: var(--mono);
+  color: var(--ink);
+}
+
+.stage {
+  position: relative;
+  height: 100vh;
+  background: var(--ground);
+  overflow: hidden;
+}
+
+.stage-canvas {
+  display: block;
+}
+
+/* Signature hairline down the center of the stage. */
+.center-rule {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: rgba(232, 230, 224, 0.1);
+  pointer-events: none;
+}
+
+/* ---- top bar ---- */
+
+.hud-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--hairline);
+  background: rgba(5, 5, 5, 0.55);
+  backdrop-filter: blur(6px);
+}
+
+.wordmark {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.wordmark-flip {
+  display: inline-block;
+  transform: rotate(180deg) translateY(-2px);
+}
+
+.wordmark-glyph {
+  color: var(--accent);
+  margin-left: 0.35em;
+}
+
+.tagline {
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- control panel ---- */
+
+.panel {
+  position: absolute;
+  top: 68px;
+  left: 12px;
+  width: min(320px, calc(100vw - 24px));
+  max-height: calc(100vh - 92px);
+  overflow-y: auto;
+  border: 1px solid var(--hairline);
+  background: rgba(5, 5, 5, 0.78);
+  backdrop-filter: blur(8px);
+}
+
+.panel-section + .panel-section {
+  border-top: 1px solid var(--hairline);
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 11px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.section-head:hover {
+  background: rgba(232, 230, 224, 0.06);
+}
+
+.section-toggle {
+  font-size: 14px;
+  color: var(--ink-dim);
+}
+
+.section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 14px 14px;
+}
+
+/* ---- fields ---- */
+
+.field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.field > select,
+.field > input[type="text"] {
+  flex: 1;
+  min-width: 0;
+}
+
+select,
+input[type="text"] {
+  padding: 7px 8px;
+  border: 1px solid var(--hairline);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+select {
+  text-transform: uppercase;
+}
+
+select:focus-visible,
+input:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+
+input[type="range"] {
+  flex: 1;
+  accent-color: var(--ink);
+}
+
+input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+
+input[type="color"] {
+  width: 34px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* ---- buttons ---- */
+
+.ghost-btn {
+  padding: 7px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.ghost-btn:hover {
+  background: var(--ink);
+  color: var(--ground);
+}
+
+.ghost-btn.is-active {
+  background: var(--ink);
+  color: var(--ground);
+}
+
+.ghost-btn.is-alarm {
+  border-color: var(--alarm);
+  color: var(--alarm);
+}
+
+.ghost-btn.is-alarm:hover {
+  background: var(--alarm);
+  color: var(--ground);
+}
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-label {
+  display: inline-block;
 }
 
 /* Make keyboard focus on the visually-hidden file input visible on its label. */
 .file-label:focus-within {
-  outline: 2px solid #00f0ff;
+  outline: 1px solid var(--accent);
   outline-offset: 2px;
+}
+
+.file-name {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.download-link {
+  color: var(--accent);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
+  border-bottom: 1px solid var(--accent);
+  padding-bottom: 1px;
+}
+
+.status {
+  margin: 0;
+  padding: 10px 14px;
+  border-top: 1px solid var(--hairline);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+/* ---- bottom-right sign-off ---- */
+
+.hud-bottom {
+  position: absolute;
+  right: 16px;
+  bottom: 12px;
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  pointer-events: none;
 }

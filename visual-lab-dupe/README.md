@@ -1,9 +1,15 @@
-# Visual Lab Dupe
+# DUANYSWRLD ✳ Visual Lab
 
 An audio-reactive visual playground built with React + Vite and the Web Audio
 API. It analyzes microphone input or a selected local audio file through an
 `AnalyserNode` and renders it to a full-screen `<canvas>` in one of several
-visual modes, with a small on-screen control panel.
+visual modes, with an on-screen control panel.
+
+The chrome is a dark, editorial, typewriter-mono aesthetic: uppercase
+`( PARENTHETICAL )` section labels, hairline rules (including a signature
+vertical rule down the center of the stage), collapsible +/− panel sections,
+ghost buttons that invert on hover, and an acid-green accent. The lyric
+overlay defaults to `STAY STRANGE`.
 
 ## Modes
 
@@ -14,12 +20,16 @@ visual modes, with a small on-screen control panel.
 | `LAVA`     | Grid of pulsing blobs driven by frequency bins + spectral centroid. |
 | `PLASMA`   | Animated plasma field modulated by RMS loudness and centroid.       |
 | `STARS`    | Orbiting particles whose radius follows overall loudness.           |
+| `ORB`      | Spinning sphere of rainbow particle streaks (spin-illusion style); loudness drives spin speed, streak length, and radius. |
 
 Two full-screen post effects — CRT scanlines and an RGB noise overlay — sit on
 top of every mode. A lyrics/text overlay can be toggled and edited live, and an
 optional beat detector pulses the visuals on bass hits.
 
 ## Controls
+
+The panel is split into collapsible `( CONTROLS )` / `( SOURCE )` /
+`( OUTPUT )` sections.
 
 - **Mode** — pick the active visualizer.
 - **Color** — base color for `SCOPE`.
@@ -37,19 +47,19 @@ optional beat detector pulses the visuals on bass hits.
 
 The visuals react to whichever source is selected:
 
-- **🎤 Mic** — captures live microphone audio (analysis only; not routed to the
+- **Mic** — captures live microphone audio (analysis only; not routed to the
   speakers, so there's no feedback).
-- **🎵 Audio file** — pick any local audio file; it's routed through the
+- **Audio file** — pick any local audio file; it's routed through the
   analyser to the speakers so you hear it while it drives the visuals. This is
   the path to point at a track or a DAW's rendered output for now; a direct DAW
   device feed can be selected via the OS/browser as a mic-style input later.
 
 ## Recording
 
-Press **⏺ Record** to capture the canvas via `canvas.captureStream()` and
+Press **Record** to capture the canvas via `canvas.captureStream()` and
 `MediaRecorder`. The current audio is mixed in through a `MediaStreamDestination`
 tap on the audio graph, so the exported clip has sound (works for both mic and
-file sources). Press **⏹ Stop recording**, then **⬇ Download clip** to save the
+file sources). Press **Stop recording**, then **Download clip** to save the
 `.webm`. Recording uses VP9/Opus when available, falling back to VP8 then plain
 WebM; browsers without `MediaRecorder`/`captureStream` show a notice instead.
 
@@ -61,7 +71,7 @@ npm run dev
 ```
 
 Then open the printed local URL. It starts on the mic, so **allow microphone
-access** — or click **🎵 Audio file** to visualize a track instead. Click
+access** — or click **Audio file** to visualize a track instead. Click
 anywhere once if audio does not start (browsers keep the `AudioContext`
 suspended until a user gesture). The panel shows the current source status.
 
