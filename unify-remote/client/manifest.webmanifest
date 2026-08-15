@@ -1,0 +1,12 @@
+{
+  "name": "Unify Remote",
+  "short_name": "Unify",
+  "description": "Use any of your devices as a remote, keyboard, and trackpad for the others — with screen mirroring.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0f14",
+  "theme_color": "#0b0f14",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

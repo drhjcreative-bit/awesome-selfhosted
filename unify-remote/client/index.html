@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b0f14">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Unify Remote</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header>
+  <h1>Unify<span>Remote</span></h1>
+  <div id="conn" class="pill offline">connecting…</div>
+</header>
+
+<section id="target-bar">
+  <label for="target">Controlling</label>
+  <select id="target"><option value="">— pick a device —</option></select>
+</section>
+
+<nav id="tabs">
+  <button data-tab="trackpad" class="active">Trackpad</button>
+  <button data-tab="keyboard">Keyboard</button>
+  <button data-tab="remote">Remote</button>
+  <button data-tab="screen">Screen</button>
+  <button data-tab="receive">Be&nbsp;controlled</button>
+</nav>
+
+<main>
+
+  <!-- ============ TRACKPAD ============ -->
+  <div id="tab-trackpad" class="tab active">
+    <div id="pad">
+      <div id="pad-hint">
+        1 finger: move &nbsp;·&nbsp; tap: click<br>
+        2 fingers: scroll &nbsp;·&nbsp; 2-finger tap: right-click<br>
+        double-tap &amp; hold: drag
+      </div>
+    </div>
+    <div class="btn-row">
+      <button id="btn-left" class="big">Click</button>
+      <button id="btn-right" class="big">Right click</button>
+    </div>
+    <div class="btn-row">
+      <label class="slider-label">Speed
+        <input id="speed" type="range" min="0.5" max="3" step="0.1" value="1.4">
+      </label>
+    </div>
+  </div>
+
+  <!-- ============ KEYBOARD ============ -->
+  <div id="tab-keyboard" class="tab">
+    <textarea id="kb-input" rows="1" placeholder="Tap here, then type — keys are sent live"
+      autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+    <div class="key-grid">
+      <button data-key="53">esc</button>
+      <button data-key="48">tab</button>
+      <button data-key="51">⌫</button>
+      <button data-key="36">return</button>
+      <button data-key="126">↑</button>
+      <button data-key="125">↓</button>
+      <button data-key="123">←</button>
+      <button data-key="124">→</button>
+      <button data-key="49">space</button>
+      <button data-key="36" data-mods="cmd" class="wide">⌘ return</button>
+    </div>
+    <div class="key-grid">
+      <button data-key="0"  data-mods="cmd">⌘A</button>
+      <button data-key="8"  data-mods="cmd">⌘C</button>
+      <button data-key="9"  data-mods="cmd">⌘V</button>
+      <button data-key="7"  data-mods="cmd">⌘X</button>
+      <button data-key="6"  data-mods="cmd">⌘Z</button>
+      <button data-key="48" data-mods="cmd">⌘tab</button>
+      <button data-key="49" data-mods="cmd" class="wide">⌘space</button>
+    </div>
+    <p class="note">Paste a block of text below and send it in one go:</p>
+    <div class="btn-row">
+      <textarea id="kb-block" rows="2" placeholder="Longer text…"></textarea>
+      <button id="kb-send" class="big">Send</button>
+    </div>
+  </div>
+
+  <!-- ============ REMOTE ============ -->
+  <div id="tab-remote" class="tab">
+    <div class="remote-grid">
+      <button data-media="prev">⏮</button>
+      <button data-media="playpause" class="accent">⏯</button>
+      <button data-media="next">⏭</button>
+      <button data-media="voldown">🔉</button>
+      <button data-media="mute">🔇</button>
+      <button data-media="volup">🔊</button>
+    </div>
+    <div class="remote-grid arrows">
+      <span></span><button data-key="126">▲</button><span></span>
+      <button data-key="123">◀</button>
+      <button data-key="49" class="accent">space</button>
+      <button data-key="124">▶</button>
+      <span></span><button data-key="125">▼</button><span></span>
+    </div>
+    <p class="note">Arrows + space work as a presentation clicker (Keynote, PowerPoint, videos).</p>
+  </div>
+
+  <!-- ============ SCREEN ============ -->
+  <div id="tab-screen" class="tab">
+    <div class="btn-row">
+      <button id="share-btn" class="big accent">Share this screen</button>
+      <button id="share-stop" class="big" hidden>Stop sharing</button>
+    </div>
+    <p class="note">On a Mac you can share the whole screen or a single window
+      (share one app's window to use another device as an extra display for it).
+      iPhone/iPad Safari can share its current tab on iOS 17+.</p>
+    <h3>Watch a device</h3>
+    <div id="share-list" class="device-list"><p class="note">No one is sharing yet.</p></div>
+    <video id="viewer" autoplay playsinline muted hidden></video>
+    <button id="viewer-full" class="big" hidden>Full screen</button>
+  </div>
+
+  <!-- ============ RECEIVER ============ -->
+  <div id="tab-receive" class="tab">
+    <div class="btn-row">
+      <button id="receive-toggle" class="big accent">Let other devices control this one</button>
+    </div>
+    <p class="note" id="receive-note">
+      Turns this device into a target: other devices' trackpads and keyboards
+      move a virtual pointer here. (On iPhone/iPad the pointer works inside this
+      app — iOS/iPadOS don't allow apps to control the whole system. For full
+      native control of a Mac, run the host: <code>npm start</code>.)
+    </p>
+    <div id="receive-surface" hidden>
+      <div id="virtual-cursor">➤</div>
+      <div id="receive-canvas">
+        <h2>Controlled surface</h2>
+        <p>Move the cursor from another device. Taps click these demo targets, scrolling scrolls this panel.</p>
+        <div class="demo-targets">
+          <button class="demo">Button A</button>
+          <button class="demo">Button B</button>
+          <button class="demo">Button C</button>
+        </div>
+        <textarea rows="4" placeholder="Remote keyboard types here…" id="receive-text"></textarea>
+        <div class="filler"></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script src="app.js" type="module"></script>
+</body>
+</html>
