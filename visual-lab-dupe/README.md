@@ -101,11 +101,30 @@ without a canvas, `AudioContext`, or DOM:
   analysis and bass beat detection extracted from the draw loop.
 - `mime.js` — `pickRecordingMime`, the recorder codec selection.
 
-Tests run under [Vitest](https://vitest.dev/) in a `node` environment and cover
-these helpers' branches and edge cases. Component and audio-graph integration
-tests (which need jsdom plus mocked Web Audio / `MediaRecorder` / canvas APIs)
-are a planned next layer; new files can opt into the DOM with a
-`// @vitest-environment jsdom` docblock.
+These helpers' branch/edge-case tests run under [Vitest](https://vitest.dev/) in
+a `node` environment.
+
+The component and audio-graph layers are covered by integration tests that run
+in jsdom (opted in per file with a `// @vitest-environment jsdom` docblock)
+against a shared fake-media harness in `src/test/mediaMocks.js`. jsdom ships none
+of the Web Audio API, `MediaRecorder`, canvas rendering, `captureStream`, or
+`getUserMedia`, so `installMediaMocks()` stands in fakes for all of them and
+hands back spies/handles. These suites cover:
+
+- **Interaction / a11y** (`App.interaction.test.jsx`) — control wiring, the
+  collapsible panel sections, labelled controls, and the status region.
+- **Audio graph** (`App.integration.test.jsx`) — mic-on-mount wiring, mic↔file
+  switching (including the no-feedback invariant and the stale-request guard),
+  file play/pause, and the input-device picker.
+- **Recording** — the `MediaRecorder` lifecycle: unsupported environments,
+  start → mix audio → stop → download, and error handling.
+- **Cleanup** — unmount tears down the graph, stops live tracks and recordings,
+  removes listeners, and revokes object URLs.
+
+The per-mode draw-loop rendering (`SCOPE`/`SPECTRUM`/`LAVA`/`PLASMA`/`STARS`/
+`ORB`) is intentionally not asserted pixel-by-pixel — it needs a real canvas and
+a driven animation loop. `npm run coverage` reports coverage for `src/lib/` and
+`src/App.jsx`.
 
 ## Notes
 
