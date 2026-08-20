@@ -105,6 +105,7 @@
   <span>( <b id="stat-total">0</b> outputs )</span>
   <span>( <b id="stat-merged">0</b> merged )</span>
   <span>( <b id="stat-projects">0</b> projects )</span>
+  <span>( <b id="stat-chat">0</b> chat outputs )</span>
   <span id="live-dot">( snapshot )</span>
 </div>
 
@@ -118,6 +119,9 @@
 
 <h2 class="section-label">( Standing Projects )</h2>
 <div class="projects" id="projects"></div>
+
+<h2 class="section-label">( Chat Outputs — Claude Artifacts )</h2>
+<div class="projects" id="artifacts"></div>
 
 <h2 class="section-label">( Session Outputs — Pull Requests )</h2>
 <div id="list" aria-live="polite"></div>
@@ -157,6 +161,25 @@ const PROJECTS = [
     repo: "awesome-selfhosted",
     desc: "This page. Lists every Claude-built output across the forks, refreshed live from the GitHub API, with direct ZIP / patch downloads.",
     live: null,
+  },
+];
+
+// Chat outputs: artifacts published from claude.ai chat sessions. There is no
+// public API to enumerate these, so this list is curated — ask Claude to
+// refresh it in a future session after publishing new artifacts. The URLs are
+// owner-private on claude.ai (sign-in required) unless explicitly shared.
+const ARTIFACTS = [
+  {
+    title: "Automation Opportunities — Aug 5 Scan",
+    updated: "2026-08-05",
+    url: "https://claude.ai/code/artifact/8659a912-ac5d-4f90-aec8-2028ee5740e7",
+    desc: "Ops-scan report ranking six manual loops worth automating across active projects (Filing Map, BGCY brand guide, resume variants, SignalOps, tarot launch, KDP pipeline), sourced from Drive + Calendar.",
+  },
+  {
+    title: "Notice Board — Rolling Display",
+    updated: "2026-07-29",
+    url: "https://claude.ai/code/artifact/8551c4c5-ec29-42a3-abeb-e5e7c91c4a9c",
+    desc: "School-display-style rolling notice board: drop in images, reorder and caption a message queue, then play a timed fullscreen loop with adjustable hold time.",
   },
 ];
 
@@ -245,6 +268,7 @@ function render() {
   document.getElementById("stat-total").textContent = outputs.length;
   document.getElementById("stat-merged").textContent = outputs.filter((o) => o.state === "merged").length;
   document.getElementById("stat-projects").textContent = PROJECTS.length;
+  document.getElementById("stat-chat").textContent = ARTIFACTS.length;
 
   document.getElementById("list").innerHTML = shown.map((o) => `
     <article class="card">
@@ -284,6 +308,21 @@ function renderProjects() {
       </div>
     </article>`;
   }).join("");
+}
+
+function renderArtifacts() {
+  document.getElementById("artifacts").innerHTML = ARTIFACTS.map((a) => `
+    <article class="card">
+      <div class="card-top">
+        <span class="num">claude.ai artifact</span>
+        <span class="num">${esc(a.updated)}</span>
+      </div>
+      <h3>${esc(a.title)}</h3>
+      <p class="desc">${esc(a.desc)}</p>
+      <div class="btns">
+        <a class="btn primary" href="${esc(a.url)}" target="_blank" rel="noopener">Open ↗</a>
+      </div>
+    </article>`).join("");
 }
 
 async function refreshLive() {
@@ -331,6 +370,7 @@ document.getElementById("search").addEventListener("input", (e) => {
 });
 
 renderProjects();
+renderArtifacts();
 render();
 refreshLive();
 </script>
