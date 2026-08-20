@@ -201,7 +201,14 @@ export function installMediaMocks() {
   vi.stubGlobal("AudioContext", FakeAudioContext);
   vi.stubGlobal("webkitAudioContext", FakeAudioContext);
   vi.stubGlobal("MediaRecorder", FakeMediaRecorder);
-  vi.stubGlobal("requestAnimationFrame", vi.fn(() => 1)); // don't drive the loop
+  // Capture (but don't auto-run) the scheduled frame callback. The render loop
+  // re-schedules itself at the end of each draw, so the latest callback is the
+  // draw fn; tests call drawFrame() to execute exactly one frame on demand.
+  const rafCallbacks = [];
+  vi.stubGlobal(
+    "requestAnimationFrame",
+    vi.fn((cb) => rafCallbacks.push(cb)),
+  );
   vi.stubGlobal("cancelAnimationFrame", vi.fn());
 
   const createObjectURL = vi.fn(() => `blob:mock/${createObjectURL.mock.calls.length}`);
@@ -223,6 +230,8 @@ export function installMediaMocks() {
     isTypeSupported: FakeMediaRecorder.isTypeSupported,
     lastAudioContext: () => FakeAudioContext.instances.at(-1),
     lastRecorder: () => FakeMediaRecorder.instances.at(-1),
+    // Run one more animation frame using the most recently scheduled callback.
+    drawFrame: () => rafCallbacks.at(-1)?.(),
     uninstall() {
       HTMLCanvasElement.prototype.getContext = originals.getContext;
       HTMLCanvasElement.prototype.captureStream = originals.captureStream;
