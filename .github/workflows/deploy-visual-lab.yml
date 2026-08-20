@@ -5,6 +5,7 @@ on:
     branches: [master]
     paths:
       - "visual-lab-dupe/**"
+      - "claude-outputs/**"
       - ".github/workflows/deploy-visual-lab.yml"
   workflow_dispatch:
 
@@ -37,6 +38,8 @@ jobs:
       - run: npm run build
         env:
           VITE_BASE: /awesome-selfhosted/
+      # Bundle the Claude outputs portal so it's served at /portal/.
+      - run: mkdir -p dist/portal && cp ../claude-outputs/index.html dist/portal/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
