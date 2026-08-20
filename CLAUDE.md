@@ -10,6 +10,8 @@ This repository is a **fork of [awesome-selfhosted/awesome-selfhosted](https://g
 | --- | --- | --- |
 | `README.md`, `non-free.md` | The Awesome-Selfhosted curated list | **No — auto-generated.** See below. |
 | `visual-lab-dupe/` | An audio-reactive React + Vite web app | **Yes — this is the real dev target.** |
+| `unify-remote/` | A self-hosted cross-device remote/keyboard/trackpad hub | Yes — fork-specific project. |
+| `claude-outputs/` | Static portal listing all Claude-built outputs with download links (deployed to Pages at `/portal/`) | Yes — single self-contained `index.html`, no build step. |
 | `_static/`, `LICENSE` | Assets/license for the list | Rarely, and only alongside upstream. |
 | `.github/` | Issue/PR templates for the list mirror | Rarely. |
 
