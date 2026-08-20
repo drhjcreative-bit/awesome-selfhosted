@@ -231,7 +231,13 @@ export function installMediaMocks() {
     lastAudioContext: () => FakeAudioContext.instances.at(-1),
     lastRecorder: () => FakeMediaRecorder.instances.at(-1),
     // Run one more animation frame using the most recently scheduled callback.
-    drawFrame: () => rafCallbacks.at(-1)?.(),
+    // Throws if nothing was scheduled, so a test asserting a frame renders can't
+    // pass vacuously when the render loop never started.
+    drawFrame: () => {
+      const callback = rafCallbacks.at(-1);
+      if (!callback) throw new Error("No animation frame has been scheduled");
+      return callback(0);
+    },
     uninstall() {
       HTMLCanvasElement.prototype.getContext = originals.getContext;
       HTMLCanvasElement.prototype.captureStream = originals.captureStream;

@@ -52,21 +52,19 @@ describe("draw loop — every mode renders a frame without throwing", () => {
 describe("draw loop — overlay/effect branches", () => {
   it("draws with the lyrics overlay disabled", async () => {
     await renderApp();
-    const showText = screen.getAllByRole("checkbox")[0]; // "Show lyrics"
-    fireEvent.click(showText); // turn overlay off
+    fireEvent.click(screen.getByLabelText(/Show lyrics/i)); // turn overlay off
     expect(() => media.drawFrame()).not.toThrow();
   });
 
   it("draws with the beat pulse disabled", async () => {
     await renderApp();
-    const beat = screen.getAllByRole("checkbox")[1]; // "Beat pulse"
-    fireEvent.click(beat);
+    fireEvent.click(screen.getByLabelText(/Beat pulse/i));
     expect(() => media.drawFrame()).not.toThrow();
   });
 
   it("skips the noise overlay at zero intensity without throwing", async () => {
     await renderApp();
-    fireEvent.change(document.querySelector('input[type="range"]'), {
+    fireEvent.change(screen.getByLabelText(/Intensity/i), {
       target: { value: "0" },
     });
     expect(() => media.drawFrame()).not.toThrow();
