@@ -151,6 +151,10 @@ const makeMediaDevices = () => {
   };
 };
 
+/**
+ * Install browser-media mocks and return handles for controlling and inspecting them in tests.
+ * @returns {Object} Mock handles, tracking collections, frame control, and an `uninstall()` method that restores the original browser implementations.
+ */
 export function installMediaMocks() {
   FakeAudioContext.instances = [];
   FakeMediaRecorder.instances = [];
