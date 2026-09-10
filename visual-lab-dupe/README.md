@@ -121,10 +121,14 @@ hands back spies/handles. These suites cover:
 - **Cleanup** — unmount tears down the graph, stops live tracks and recordings,
   removes listeners, and revokes object URLs.
 
-The per-mode draw-loop rendering (`SCOPE`/`SPECTRUM`/`LAVA`/`PLASMA`/`STARS`/
-`ORB`) is intentionally not asserted pixel-by-pixel — it needs a real canvas and
-a driven animation loop. `npm run coverage` reports coverage for `src/lib/` and
-`src/App.jsx`.
+- **Draw loop** (`App.draw.test.jsx`) — the per-mode rendering
+  (`SCOPE`/`SPECTRUM`/`LAVA`/`PLASMA`/`STARS`/`ORB`) plus the overlay/effect
+  branches are smoke-tested: `installMediaMocks()` captures the loop's scheduled
+  frame callback so a test can run exactly one frame per mode and assert it does
+  not throw. Pixels aren't asserted (that needs a real canvas), but a mode that
+  crashes the app is caught.
+
+`npm run coverage` reports coverage for `src/lib/` and `src/App.jsx`.
 
 ## Notes
 

@@ -151,6 +151,10 @@ const makeMediaDevices = () => {
   };
 };
 
+/**
+ * Install browser-media mocks and return handles for controlling and inspecting them in tests.
+ * @returns {Object} Mock handles, tracking collections, frame control, and an `uninstall()` method that restores the original browser implementations.
+ */
 export function installMediaMocks() {
   FakeAudioContext.instances = [];
   FakeMediaRecorder.instances = [];
@@ -201,7 +205,14 @@ export function installMediaMocks() {
   vi.stubGlobal("AudioContext", FakeAudioContext);
   vi.stubGlobal("webkitAudioContext", FakeAudioContext);
   vi.stubGlobal("MediaRecorder", FakeMediaRecorder);
-  vi.stubGlobal("requestAnimationFrame", vi.fn(() => 1)); // don't drive the loop
+  // Capture (but don't auto-run) the scheduled frame callback. The render loop
+  // re-schedules itself at the end of each draw, so the latest callback is the
+  // draw fn; tests call drawFrame() to execute exactly one frame on demand.
+  const rafCallbacks = [];
+  vi.stubGlobal(
+    "requestAnimationFrame",
+    vi.fn((cb) => rafCallbacks.push(cb)),
+  );
   vi.stubGlobal("cancelAnimationFrame", vi.fn());
 
   const createObjectURL = vi.fn(() => `blob:mock/${createObjectURL.mock.calls.length}`);
@@ -223,6 +234,14 @@ export function installMediaMocks() {
     isTypeSupported: FakeMediaRecorder.isTypeSupported,
     lastAudioContext: () => FakeAudioContext.instances.at(-1),
     lastRecorder: () => FakeMediaRecorder.instances.at(-1),
+    // Run one more animation frame using the most recently scheduled callback.
+    // Throws if nothing was scheduled, so a test asserting a frame renders can't
+    // pass vacuously when the render loop never started.
+    drawFrame: () => {
+      const callback = rafCallbacks.at(-1);
+      if (!callback) throw new Error("No animation frame has been scheduled");
+      return callback(0);
+    },
     uninstall() {
       HTMLCanvasElement.prototype.getContext = originals.getContext;
       HTMLCanvasElement.prototype.captureStream = originals.captureStream;

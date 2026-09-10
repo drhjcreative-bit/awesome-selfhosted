@@ -6,6 +6,7 @@ on:
     paths:
       - "visual-lab-dupe/**"
       - "claude-outputs/**"
+      - "therebuildseries/**"
       - ".github/workflows/deploy-visual-lab.yml"
   workflow_dispatch:
 
@@ -42,6 +43,9 @@ jobs:
       # Copies the whole folder so the shared tokens.css (HATARI DIGITAL 1)
       # ships with the page — index.html links it relatively.
       - run: mkdir -p dist/portal && cp -R ../claude-outputs/. dist/portal/
+      # Bundle The Rebuild Series site so it's served at /rebuild/.
+      # (CNAME is intentionally not copied — it's for standalone hosting.)
+      - run: mkdir -p dist/rebuild && cp ../therebuildseries/index.html dist/rebuild/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

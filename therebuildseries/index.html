@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Rebuild Series — Guided Workbooks</title>
+<meta name="description" content="The Rebuild Series: guided workbooks for rebuilding yourself on paper. Volume One: Quiet the Critic. Volume Six: Built, Not Born.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23191612'/%3E%3Ctext x='32' y='44' font-family='Arial Black,Arial' font-size='34' font-weight='900' fill='%23F4F0E6' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;900&family=Newsreader:ital,opsz,wght@1,6..72,400;1,6..72,500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   THE REBUILD SERIES — therebuildseries.com
+   Buy links: search for "TODO" below and paste your Amazon
+   (or other store) URLs into the two href="#" buy buttons.
+   ============================================================ */
+:root{
+  --paper:#F4F0E6;
+  --paper-deep:#ECE6D6;
+  --ink:#191612;
+  --ink-soft:#4A443B;
+  --hairline:rgba(25,22,18,.18);
+  --rust:#B23A25;       /* Volume One spine color  */
+  --pine:#234F3E;       /* Volume Six spine color  */
+  --max:1120px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Archivo",ui-sans-serif,system-ui,"Helvetica Neue",Arial,sans-serif;
+  font-size:17px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+::selection{background:var(--ink);color:var(--paper)}
+a{color:inherit}
+img{max-width:100%}
+
+.wrap{max-width:var(--max);margin:0 auto;padding:0 24px}
+
+/* ---------- shared typographic roles ---------- */
+.label{
+  font-size:11px;font-weight:600;letter-spacing:.28em;
+  text-transform:uppercase;color:var(--ink-soft);
+}
+.display{
+  font-weight:900;text-transform:uppercase;
+  letter-spacing:-.015em;line-height:.92;
+}
+.quote{
+  font-family:"Newsreader",Georgia,"Times New Roman",serif;
+  font-style:italic;font-weight:400;
+}
+
+/* ---------- masthead ---------- */
+header{
+  border-bottom:1px solid var(--hairline);
+  position:sticky;top:0;background:var(--paper);z-index:10;
+}
+.masthead{
+  display:flex;align-items:baseline;justify-content:space-between;
+  gap:24px;padding:18px 24px;max-width:var(--max);margin:0 auto;
+}
+.wordmark{
+  font-weight:900;text-transform:uppercase;letter-spacing:.06em;
+  font-size:15px;text-decoration:none;white-space:nowrap;
+}
+.wordmark span{color:var(--rust)}
+nav{display:flex;gap:28px}
+nav a{
+  font-size:11px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;
+  text-decoration:none;color:var(--ink-soft);
+}
+nav a:hover{color:var(--ink)}
+
+/* ---------- hero ---------- */
+.hero{padding:96px 0 84px;border-bottom:1px solid var(--hairline)}
+.hero .label{display:block;margin-bottom:28px}
+.hero h1{
+  font-size:clamp(52px,9.5vw,124px);
+  max-width:12ch;
+}
+.hero h1 em{
+  font-style:normal;color:var(--rust);
+}
+.hero-sub{
+  display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);
+  gap:48px;margin-top:48px;align-items:end;
+}
+.hero-sub p{max-width:46ch;color:var(--ink-soft)}
+.hero-sub .quote{
+  font-size:22px;line-height:1.45;color:var(--ink);
+  border-left:3px solid var(--ink);padding-left:20px;
+}
+
+/* ---------- volume bands ---------- */
+.band{padding:96px 0;border-bottom:1px solid var(--hairline)}
+.band-grid{
+  display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);
+  gap:72px;align-items:center;
+}
+.band.flip .band-grid{grid-template-columns:minmax(0,6fr) minmax(0,5fr)}
+.band.flip .cover-col{order:2}
+
+.vol-no{
+  font-weight:900;font-size:13px;letter-spacing:.28em;text-transform:uppercase;
+}
+.band h2{font-size:clamp(40px,5.5vw,68px);margin:14px 0 8px;max-width:12ch}
+.band .subtitle{
+  font-size:15px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-soft);margin-bottom:28px;
+}
+.band .pitch{color:var(--ink-soft);max-width:52ch;margin-bottom:28px}
+.band .pitch strong{color:var(--ink)}
+
+.parts{list-style:none;border-top:1px solid var(--hairline);margin-bottom:36px}
+.parts li{
+  display:grid;grid-template-columns:44px 1fr;gap:16px;
+  padding:12px 0;border-bottom:1px solid var(--hairline);
+  font-size:15px;align-items:baseline;
+}
+.parts .n{font-weight:900;font-size:13px;letter-spacing:.1em}
+.parts .t{font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:13px}
+.parts .d{color:var(--ink-soft);font-size:14px}
+
+.specs{display:flex;flex-wrap:wrap;gap:8px 24px;margin-bottom:36px}
+.specs span{font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft)}
+
+.buy-row{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+.buy{
+  display:inline-block;text-decoration:none;
+  background:var(--ink);color:var(--paper);
+  font-weight:700;font-size:13px;letter-spacing:.14em;text-transform:uppercase;
+  padding:18px 34px;transition:background .15s ease;
+}
+.band-v1 .buy:hover{background:var(--rust)}
+.band-v6 .buy:hover{background:var(--pine)}
+.buy-note{font-size:13px;color:var(--ink-soft)}
+
+/* ---------- CSS book covers ---------- */
+.cover-col{display:flex;justify-content:center}
+.cover{
+  width:min(360px,100%);aspect-ratio:6/9;
+  display:flex;flex-direction:column;
+  padding:34px 30px;
+  box-shadow:14px 14px 0 rgba(25,22,18,.12);
+  position:relative;
+}
+.cover::before{ /* spine hint */
+  content:"";position:absolute;left:10px;top:0;bottom:0;width:1px;
+  background:rgba(255,255,255,.25);
+}
+.cover .c-series{
+  font-size:9px;font-weight:600;letter-spacing:.3em;text-transform:uppercase;
+  padding-bottom:16px;margin-bottom:auto;
+}
+.cover .c-title{
+  font-weight:900;text-transform:uppercase;line-height:.9;letter-spacing:-.01em;
+}
+.cover .c-sub{
+  font-size:11px;line-height:1.5;margin-top:18px;
+}
+.cover .c-foot{
+  margin-top:auto;padding-top:16px;
+  font-size:8.5px;font-weight:600;letter-spacing:.28em;text-transform:uppercase;
+  border-top:1px solid currentColor;
+}
+.cover-v1{background:var(--rust);color:var(--paper)}
+.cover-v1 .c-title{font-size:56px}
+.cover-v6{background:var(--pine);color:var(--paper)}
+.cover-v6 .c-title{font-size:50px}
+.cover-v6 .c-quote{
+  font-family:"Newsreader",Georgia,serif;font-style:italic;
+  font-size:13px;line-height:1.5;margin-top:18px;
+}
+
+/* dark band for volume six */
+.band-v6{background:var(--ink);color:var(--paper)}
+.band-v6 .subtitle,.band-v6 .pitch,.band-v6 .specs span,
+.band-v6 .buy-note,.band-v6 .parts .d{color:rgba(244,240,230,.72)}
+.band-v6 .pitch strong{color:var(--paper)}
+.band-v6 .parts,.band-v6 .parts li{border-color:rgba(244,240,230,.22)}
+.band-v6 .buy{background:var(--paper);color:var(--ink)}
+.band-v6 .buy:hover{background:var(--pine);color:var(--paper)}
+.band-v6 .vol-no{color:#8FBCA5}
+.band-v1 .vol-no{color:var(--rust)}
+.band-v6 ::selection{background:var(--paper);color:var(--ink)}
+
+.band-quote{
+  margin-top:56px;padding-top:32px;border-top:1px solid var(--hairline);
+  font-size:24px;line-height:1.45;max-width:34ch;
+}
+.band-v6 .band-quote{border-color:rgba(244,240,230,.22)}
+.band-quote .who{
+  display:block;margin-top:12px;
+  font-family:"Archivo",sans-serif;font-style:normal;
+  font-size:11px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--ink-soft);
+}
+.band-v6 .band-quote .who{color:rgba(244,240,230,.6)}
+
+/* ---------- series index ---------- */
+.series{padding:96px 0;border-bottom:1px solid var(--hairline);background:var(--paper-deep)}
+.series h3{font-size:clamp(30px,4vw,44px);margin:12px 0 40px}
+.index{list-style:none;border-top:1px solid var(--hairline)}
+.index li{
+  display:grid;grid-template-columns:70px 1fr auto;gap:20px;
+  align-items:baseline;padding:16px 0;border-bottom:1px solid var(--hairline);
+}
+.index .no{font-weight:900;font-size:14px;letter-spacing:.1em}
+.index .name{font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:15px}
+.index .name a{text-decoration:none}
+.index .name a:hover{color:var(--rust)}
+.index .state{font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft)}
+.index li.open .state{color:var(--rust)}
+.index li.soon{opacity:.45}
+
+/* ---------- footer ---------- */
+footer{padding:72px 0 56px}
+.foot-grid{display:flex;justify-content:space-between;align-items:flex-end;gap:32px;flex-wrap:wrap}
+.foot-mark{
+  font-weight:900;text-transform:uppercase;letter-spacing:-.01em;
+  font-size:clamp(34px,6vw,64px);line-height:.95;
+}
+.foot-mark span{display:block;font-size:12px;font-weight:600;letter-spacing:.3em;margin-top:14px;color:var(--ink-soft)}
+.foot-legal{font-size:12px;color:var(--ink-soft);text-align:right}
+
+/* ---------- responsive ---------- */
+@media (max-width:860px){
+  .hero{padding:64px 0 56px}
+  .hero-sub{grid-template-columns:1fr;gap:28px}
+  .band{padding:64px 0}
+  .band-grid,.band.flip .band-grid{grid-template-columns:1fr;gap:48px}
+  .band.flip .cover-col{order:0}
+  .cover-col{justify-content:flex-start}
+  nav{display:none}
+  .foot-legal{text-align:left}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="masthead">
+    <a class="wordmark" href="#top">The Rebuild<span>·</span>Series</a>
+    <nav aria-label="Site">
+      <a href="#vol-01">Vol 01 — Quiet the Critic</a>
+      <a href="#vol-06">Vol 06 — Built, Not Born</a>
+      <a href="#series">The Series</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ================= HERO ================= -->
+  <section class="hero">
+    <div class="wrap">
+      <span class="label">The Rebuild Series · Guided Workbooks</span>
+      <h1 class="display">Some things you don't fix. You <em>rebuild.</em></h1>
+      <div class="hero-sub">
+        <p>The Rebuild Series is a set of guided workbooks for the work that
+        actually changes things — done slowly, on paper, in your own
+        handwriting. No affirmations, no hacks. Prompts, trackers, and
+        self-scales that compound the longer you stay with them.</p>
+        <p class="quote">Take your time. Write messy. Cross things out. This is yours.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= VOLUME ONE ================= -->
+  <section class="band band-v1" id="vol-01">
+    <div class="wrap band-grid">
+      <div class="cover-col">
+        <div class="cover cover-v1" role="img" aria-label="Cover of Quiet the Critic, Volume One of The Rebuild Series">
+          <div class="c-series">The Rebuild Series · Volume One</div>
+          <div class="c-title">Quiet<br>The<br>Critic</div>
+          <div class="c-sub">A Workbook for Silencing Self-Doubt<br>&amp; Reclaiming Your Worth</div>
+          <div class="c-foot">therebuildseries.com</div>
+        </div>
+      </div>
+      <div>
+        <span class="vol-no">Volume One</span>
+        <h2 class="display">Quiet the Critic</h2>
+        <p class="subtitle">A workbook for silencing self-doubt &amp; reclaiming your worth</p>
+        <p class="pitch">The critic in your head didn't come from nowhere — it came from
+        somewhere. This workbook helps you trace it to its source, talk back to it
+        with the voice you'd use for someone you love, and rebuild from the inside.
+        <strong>Not by earning your worth, but by remembering you already have it.</strong></p>
+        <ul class="parts">
+          <li><span class="n">01</span><span><span class="t">Know Your Critic</span> — <span class="d">where it came from, what it says, what it costs you</span></span></li>
+          <li><span class="n">02</span><span><span class="t">Talk Back</span> — <span class="d">compassion as practice, evidence over feelings</span></span></li>
+          <li><span class="n">03</span><span><span class="t">Honor Your Worth</span> — <span class="d">why worth isn't earned, the quieter voice</span></span></li>
+        </ul>
+        <div class="specs">
+          <span>60 guided pages</span>
+          <span>14 &amp; 28-day trackers</span>
+          <span>Letter templates</span>
+          <span>Coloring pages</span>
+        </div>
+        <div class="buy-row">
+          <!-- TODO: paste the Amazon listing URL for Quiet the Critic here -->
+          <a class="buy" href="#" rel="noopener">Buy on Amazon</a>
+          <span class="buy-note">Paperback workbook</span>
+        </div>
+        <p class="band-quote quote">"Familiar feels true. It doesn't mean it is."
+          <span class="who">From Part One · Know Your Critic</span></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= VOLUME SIX ================= -->
+  <section class="band band-v6 flip" id="vol-06">
+    <div class="wrap band-grid">
+      <div>
+        <span class="vol-no">Volume Six</span>
+        <h2 class="display">Built, Not Born</h2>
+        <p class="subtitle">The art &amp; science of getting happier</p>
+        <p class="pitch">You're not unhappy — you're deficient in one of three things.
+        Built on the happiness research of social scientist Arthur C. Brooks, this
+        workbook teaches the three macronutrients of a nourishing life —
+        <strong>enjoy, achieve, serve</strong> — then has you count what's actually
+        on your plate before you decide what your problem is.</p>
+        <ul class="parts">
+          <li><span class="n">01</span><span><span class="t">The Wrong Target</span> — <span class="d">why feeling better was never the goal</span></span></li>
+          <li><span class="n">02</span><span><span class="t">The Three Plates</span> — <span class="d">enjoy, achieve, serve — taught, then counted</span></span></li>
+          <li><span class="n">03</span><span><span class="t">Where They Get Built</span> — <span class="d">family, friendship, work, and the fourth thing</span></span></li>
+        </ul>
+        <div class="specs">
+          <span>80 guided pages</span>
+          <span>Self-scales &amp; counts</span>
+          <span>Enjoy · Achieve · Serve</span>
+        </div>
+        <div class="buy-row">
+          <!-- TODO: paste the Amazon listing URL for Built, Not Born here -->
+          <a class="buy" href="#" rel="noopener">Buy on Amazon</a>
+          <span class="buy-note">Paperback workbook</span>
+        </div>
+        <p class="band-quote quote">"Happy feelings are the smell. Happiness is the dinner."
+          <span class="who">From Part One · The Wrong Target</span></p>
+      </div>
+      <div class="cover-col">
+        <div class="cover cover-v6" role="img" aria-label="Cover of Built, Not Born, Volume Six of The Rebuild Series">
+          <div class="c-series">The Rebuild Series · Volume Six</div>
+          <div class="c-title">Built,<br>Not<br>Born</div>
+          <div class="c-sub">The Art &amp; Science of Getting Happier</div>
+          <div class="c-quote">You're not unhappy.<br>You're deficient in one of three things.</div>
+          <div class="c-foot">Enjoy · Achieve · Serve</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SERIES INDEX ================= -->
+  <section class="series" id="series">
+    <div class="wrap">
+      <span class="label">The Shelf</span>
+      <h3 class="display">One series. One rebuild at a time.</h3>
+      <ul class="index">
+        <li class="open">
+          <span class="no">Vol 01</span>
+          <span class="name"><a href="#vol-01">Quiet the Critic</a></span>
+          <span class="state">Available now</span>
+        </li>
+        <li class="soon"><span class="no">Vol 02</span><span class="name">Untitled</span><span class="state">Coming soon</span></li>
+        <li class="soon"><span class="no">Vol 03</span><span class="name">Untitled</span><span class="state">Coming soon</span></li>
+        <li class="soon"><span class="no">Vol 04</span><span class="name">Untitled</span><span class="state">Coming soon</span></li>
+        <li class="soon"><span class="no">Vol 05</span><span class="name">Untitled</span><span class="state">Coming soon</span></li>
+        <li class="open">
+          <span class="no">Vol 06</span>
+          <span class="name"><a href="#vol-06">Built, Not Born</a></span>
+          <span class="state">Available now</span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ================= FOOTER ================= -->
+  <footer>
+    <div class="wrap foot-grid">
+      <div class="foot-mark">The Rebuild<br>Series
+        <span>therebuildseries.com</span>
+      </div>
+      <div class="foot-legal">
+        © 2026 The Rebuild Series. All rights reserved.<br>
+        Workbooks are tools, not therapy — if you're struggling, please reach out to a professional.
+      </div>
+    </div>
+  </footer>
+
+</main>
+</body>
+</html>
