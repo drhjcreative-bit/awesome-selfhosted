@@ -1,0 +1,137 @@
+/* HATARI DIGITAL 1 — shared foundation
+   ==========================================================================
+   The canonical stylesheet for Duane's dark editorial typewriter system on
+   screen. Kept in sync with the `hatari-digital-1` skill (assets/tokens.css);
+   the skill is the spec, this file is the deployed copy.
+
+   Consumers link this file and add ONLY what is specific to their domain.
+   Do not redefine tokens downstream — map your states onto them instead.
+   ========================================================================== */
+
+:root {
+  --bg: #0a0a0a;
+  --panel: #111111;
+  --ink: #e8e8e4;
+  --dim: #8a8a84;
+  --hair: #2a2a28;
+  --acid: #b8ff2e;
+  --red: #ff3b30;
+  --merged: #a970ff;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0; }
+
+html, body { background: var(--bg); color: var(--ink); }
+
+body {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 0 20px 80px;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+a { color: inherit; }
+img { max-width: 100%; }
+
+/* ---- wordmark ---------------------------------------------------------- */
+header { padding: 28px 0 18px; border-bottom: 1px solid var(--hair); }
+.wordmark { font-size: 28px; letter-spacing: 2px; font-weight: bold; }
+.wordmark .flip { display: inline-block; transform: scaleY(-1); }
+.wordmark .star { color: var(--acid); }
+.tagline {
+  color: var(--dim); letter-spacing: 3px; text-transform: uppercase;
+  font-size: 12px; margin-top: 4px;
+}
+
+/* ---- status line ------------------------------------------------------- */
+.statusline {
+  display: flex; flex-wrap: wrap; gap: 18px;
+  padding: 10px 0; border-bottom: 1px solid var(--hair);
+  font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: var(--dim);
+}
+.statusline b { color: var(--ink); font-weight: normal; }
+.statusline .live { color: var(--acid); }
+
+/* ---- controls ---------------------------------------------------------- */
+.controls {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  padding: 16px 0; border-bottom: 1px solid var(--hair);
+}
+.chip {
+  background: none; border: 1px solid var(--hair); color: var(--dim);
+  font: inherit; font-size: 12px; letter-spacing: 1px; text-transform: uppercase;
+  padding: 4px 12px; cursor: pointer;
+}
+.chip:hover { border-color: var(--ink); color: var(--ink); }
+.chip.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+input[type="search"], input[type="text"], textarea, select {
+  background: var(--panel); border: 1px solid var(--hair); color: var(--ink);
+  font: inherit; font-size: 13px; padding: 5px 10px;
+}
+input:focus, textarea:focus, select:focus { outline: none; border-color: var(--acid); }
+
+/* ---- section labels ---------------------------------------------------- */
+.section-label {
+  margin: 28px 0 12px; color: var(--dim);
+  letter-spacing: 3px; text-transform: uppercase; font-size: 12px;
+}
+
+/* ---- cards ------------------------------------------------------------- */
+.card {
+  border: 1px solid var(--hair); background: var(--panel);
+  padding: 16px 18px; margin-bottom: 14px;
+}
+.card-top { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; }
+.card h3 {
+  font-size: 15px; letter-spacing: 0.5px; margin: 6px 0 4px; text-transform: uppercase;
+}
+.num { color: var(--dim); font-size: 12px; }
+.meta { color: var(--dim); font-size: 12px; word-break: break-all; }
+.desc { margin: 10px 0 12px; color: var(--ink); font-size: 13px; max-width: 78ch; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.grid .card { margin: 0; display: flex; flex-direction: column; }
+.grid .desc { flex: 1; }
+
+/* ---- badges (state only) ----------------------------------------------- */
+.badge {
+  font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+  border: 1px solid; padding: 1px 7px;
+}
+.badge.live   { color: var(--acid);   border-color: var(--acid); }
+.badge.done   { color: var(--merged); border-color: var(--merged); }
+.badge.failed { color: var(--red);    border-color: var(--red); }
+
+/* ---- buttons ----------------------------------------------------------- */
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn {
+  display: inline-block; text-decoration: none; cursor: pointer;
+  background: none; font: inherit;
+  border: 1px solid var(--ink); color: var(--ink);
+  font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+  padding: 5px 12px;
+}
+.btn:hover { background: var(--ink); color: var(--bg); }
+.btn.primary { border-color: var(--acid); color: var(--acid); }
+.btn.primary:hover { background: var(--acid); color: var(--bg); }
+.btn.ghost { border-color: var(--hair); color: var(--dim); }
+.btn.ghost:hover { border-color: var(--ink); color: var(--ink); background: none; }
+
+/* ---- tables ------------------------------------------------------------ */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th {
+  text-align: left; color: var(--dim); font-weight: normal;
+  font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+  padding: 8px 10px; border-bottom: 1px solid var(--hair);
+}
+td { padding: 8px 10px; border-bottom: 1px solid var(--hair); }
+
+/* ---- empty state + footer ---------------------------------------------- */
+.empty { color: var(--dim); padding: 24px 0; }
+footer {
+  margin-top: 48px; color: var(--dim); font-size: 12px;
+  letter-spacing: 2px; text-transform: uppercase;
+}
