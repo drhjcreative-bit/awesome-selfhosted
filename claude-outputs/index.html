@@ -4,94 +4,18 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>DU∀NYSWRLD ✳ CLAUDE OUTPUTS</title>
+<link rel="stylesheet" href="tokens.css" />
 <style>
-  :root {
-    --bg: #0a0a0a;
-    --panel: #111111;
-    --ink: #e8e8e4;
-    --dim: #8a8a84;
-    --hair: #2a2a28;
-    --acid: #b8ff2e;
-    --red: #ff3b30;
-    --merged: #a970ff;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { background: var(--bg); color: var(--ink); }
-  body {
-    font-family: "Courier New", Courier, monospace;
-    font-size: 14px;
-    line-height: 1.5;
-    padding: 0 20px 80px;
-    max-width: 1080px;
-    margin: 0 auto;
-  }
-  a { color: inherit; }
-
-  header { padding: 28px 0 18px; border-bottom: 1px solid var(--hair); }
-  .wordmark { font-size: 28px; letter-spacing: 2px; font-weight: bold; }
-  .wordmark .flip { display: inline-block; transform: scaleY(-1); }
-  .wordmark .star { color: var(--acid); }
-  .tagline { color: var(--dim); letter-spacing: 3px; text-transform: uppercase; font-size: 12px; margin-top: 4px; }
-
-  .statusline {
-    display: flex; flex-wrap: wrap; gap: 18px;
-    padding: 10px 0; border-bottom: 1px solid var(--hair);
-    font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: var(--dim);
-  }
-  .statusline b { color: var(--ink); font-weight: normal; }
-  #live-dot { color: var(--acid); }
-
-  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--hair); }
-  .chip {
-    background: none; border: 1px solid var(--hair); color: var(--dim);
-    font: inherit; font-size: 12px; letter-spacing: 1px; text-transform: uppercase;
-    padding: 4px 12px; cursor: pointer;
-  }
-  .chip:hover { border-color: var(--ink); color: var(--ink); }
-  .chip.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-  #search {
-    background: var(--panel); border: 1px solid var(--hair); color: var(--ink);
-    font: inherit; font-size: 13px; padding: 5px 10px; min-width: 220px; flex: 1;
-  }
-  #search:focus { outline: none; border-color: var(--acid); }
-
-  .section-label { margin: 28px 0 12px; color: var(--dim); letter-spacing: 3px; text-transform: uppercase; font-size: 12px; }
-
-  .card {
-    border: 1px solid var(--hair); background: var(--panel);
-    padding: 16px 18px; margin-bottom: 14px;
-  }
-  .card-top { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; }
-  .num { color: var(--dim); font-size: 12px; }
-  .badge {
-    font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
-    border: 1px solid; padding: 1px 7px;
-  }
+  /* Portal-specific only. Everything else — palette, reset, type, cards,
+     chips, buttons, badges, labels, footer — comes from tokens.css
+     (HATARI DIGITAL 1). Map domain states onto the system's state tokens
+     rather than introducing new colors. */
   .badge.merged { color: var(--merged); border-color: var(--merged); }
   .badge.open   { color: var(--acid);   border-color: var(--acid); }
   .badge.closed { color: var(--red);    border-color: var(--red); }
-  .card h3 { font-size: 15px; letter-spacing: 0.5px; margin: 6px 0 4px; text-transform: uppercase; }
-  .meta { color: var(--dim); font-size: 12px; word-break: break-all; }
-  .desc { margin: 10px 0 12px; color: var(--ink); font-size: 13px; max-width: 78ch; }
-  .btns { display: flex; flex-wrap: wrap; gap: 8px; }
-  .btn {
-    display: inline-block; text-decoration: none;
-    border: 1px solid var(--ink); color: var(--ink);
-    font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
-    padding: 5px 12px;
-  }
-  .btn:hover { background: var(--ink); color: var(--bg); }
-  .btn.primary { border-color: var(--acid); color: var(--acid); }
-  .btn.primary:hover { background: var(--acid); color: var(--bg); }
-  .btn.ghost { border-color: var(--hair); color: var(--dim); }
-  .btn.ghost:hover { border-color: var(--ink); color: var(--ink); background: none; }
 
-  .projects { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
-  .projects .card { margin: 0; display: flex; flex-direction: column; }
-  .projects .desc { flex: 1; }
-
-  #empty { color: var(--dim); padding: 24px 0; display: none; }
-  footer { margin-top: 48px; color: var(--dim); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; }
+  #search { min-width: 220px; flex: 1; }
+  #empty { display: none; }
 </style>
 </head>
 <body>
@@ -106,7 +30,7 @@
   <span>( <b id="stat-merged">0</b> merged )</span>
   <span>( <b id="stat-projects">0</b> projects )</span>
   <span>( <b id="stat-chat">0</b> chat outputs )</span>
-  <span id="live-dot">( snapshot )</span>
+  <span class="live" id="live-dot">( snapshot )</span>
 </div>
 
 <div class="controls">
@@ -118,14 +42,14 @@
 </div>
 
 <h2 class="section-label">( Standing Projects )</h2>
-<div class="projects" id="projects"></div>
+<div class="grid" id="projects"></div>
 
 <h2 class="section-label">( Chat Outputs — Claude Artifacts )</h2>
-<div class="projects" id="artifacts"></div>
+<div class="grid" id="artifacts"></div>
 
 <h2 class="section-label">( Session Outputs — Pull Requests )</h2>
 <div id="list" aria-live="polite"></div>
-<p id="empty">( NOTHING MATCHES )</p>
+<p class="empty" id="empty">( NOTHING MATCHES )</p>
 
 <footer>( STAY STRANGE )</footer>
 
